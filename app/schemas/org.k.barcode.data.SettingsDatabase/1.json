@@ -1,0 +1,144 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "e8ebb6f42c2ed9757c4371d4313e90f9",
+    "entities": [
+      {
+        "tableName": "baseSettings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, `decoderFilterCharacters` TEXT NOT NULL, `releaseDecode` INTEGER NOT NULL, `decoderLight` INTEGER NOT NULL, PRIMARY KEY(`uid`))",
+        "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderEnable",
+            "columnName": "decoderEnable",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderVibrate",
+            "columnName": "decoderVibrate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderSound",
+            "columnName": "decoderSound",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderMode",
+            "columnName": "decoderMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderCharset",
+            "columnName": "decoderCharset",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderPrefix",
+            "columnName": "decoderPrefix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decodeSuffix",
+            "columnName": "decodeSuffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "continuousDecode",
+            "columnName": "continuousDecode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "continuousDecodeInterval",
+            "columnName": "continuousDecodeInterval",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachKeycode",
+            "columnName": "attachKeycode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderFilterCharacters",
+            "columnName": "decoderFilterCharacters",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "releaseDecode",
+            "columnName": "releaseDecode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderLight",
+            "columnName": "decoderLight",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uid"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "codeDetails",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `type` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "uid"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e8ebb6f42c2ed9757c4371d4313e90f9')"
+    ]
+  }
+}

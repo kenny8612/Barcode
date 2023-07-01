@@ -1,0 +1,94 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "cb05d30897c1f0a29b8a70c9c1dce9cb",
+    "entities": [
+      {
+        "tableName": "baseSettings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, PRIMARY KEY(`uid`))",
+        "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderEnable",
+            "columnName": "decoderEnable",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderVibrate",
+            "columnName": "decoderVibrate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderSound",
+            "columnName": "decoderSound",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderMode",
+            "columnName": "decoderMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderCharset",
+            "columnName": "decoderCharset",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderPrefix",
+            "columnName": "decoderPrefix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decodeSuffix",
+            "columnName": "decodeSuffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "continuousDecode",
+            "columnName": "continuousDecode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "continuousDecodeInterval",
+            "columnName": "continuousDecodeInterval",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachKeycode",
+            "columnName": "attachKeycode",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uid"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cb05d30897c1f0a29b8a70c9c1dce9cb')"
+    ]
+  }
+}

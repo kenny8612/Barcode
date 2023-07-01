@@ -1,0 +1,47 @@
+<resources>
+    <string-array name="decoder_mode_entries">
+        <item>Input box</item>
+        <item>Broadcast</item>
+        <item>Simulate keyboard</item>
+        <item>Clipboard</item>
+    </string-array>
+
+    <string-array name="scan_mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+    <string-array name="decoder_charset_entries">
+        <item>AUTO</item>
+        <item>GBK</item>
+        <item>UTF–8</item>
+        <item>ISO–8859–1</item>
+        <item>GB2312</item>
+        <item>Shift_JIS</item>
+    </string-array>
+
+    <string-array name="scan_charset_values">
+        <item>AUTO</item>
+        <item>GBK</item>
+        <item>UTF-8</item>
+        <item>ISO–8859–1</item>
+        <item>GB2312</item>
+        <item>Shift_JIS</item>
+    </string-array>
+
+    <string-array name="attach_keycode_entries">
+        <item>Enter</item>
+        <item>Tab</item>
+        <item>Space</item>
+        <item>N/A</item>
+    </string-array>
+
+    <string-array name="scan_additional_key_values">
+        <item>66</item>
+        <item>61</item>
+        <item>62</item>
+        <item>0</item>
+    </string-array>
+</resources>
