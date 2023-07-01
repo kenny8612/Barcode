@@ -8,8 +8,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.data.Settings
-import org.k.barcode.data.CodeDetails
+import org.k.barcode.model.Settings
+import org.k.barcode.model.CodeDetails
 import javax.inject.Inject
 
 @HiltViewModel

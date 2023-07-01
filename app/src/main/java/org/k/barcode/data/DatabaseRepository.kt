@@ -11,10 +11,6 @@ class DatabaseRepository @Inject constructor(
     val codes1D = codeDetailDDao.getCodesFlow(0)
     val codes2D = codeDetailDDao.getCodesFlow(1)
     val codesOthers = codeDetailDDao.getCodesFlow(2)
-
-    fun getCodeDetailByName(name: String) = runBlocking {
-        codeDetailDDao.getCodeByName(name)
-    }
-
-    fun getSettings() = runBlocking { settingsDao.get() }
+    suspend fun getCodeDetailByName(name: String) = codeDetailDDao.getCodeByName(name)
+    suspend fun getSettings() = settingsDao.get()
 }

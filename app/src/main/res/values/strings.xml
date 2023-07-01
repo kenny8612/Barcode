@@ -31,5 +31,7 @@
     <string name="transmitCheckDigit">Transmit Check Digit</string>
     <string name="supplemental2">Supplemental 2</string>
     <string name="supplemental5">Supplemental 5</string>
+    <string name="restore_settings">Restore settings</string>
+    <string name="make_sure_restore_settings">Are you sure restore settings?</string>
 
 </resources>

@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.k.barcode.data.Code1DName
-import org.k.barcode.data.CodeDetails
+import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.settings.code.Elan8
 
 @Composable

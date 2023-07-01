@@ -45,7 +45,7 @@ android {
             signingConfig signingConfigs.ht500_an10
         }
         debug {
-            signingConfig signingConfigs.ht500_an10
+            //signingConfig signingConfigs.ht500_an10
         }
     }
     compileOptions {

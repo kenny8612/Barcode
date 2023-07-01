@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import org.k.barcode.model.CodeDetails
 
 @Dao
 interface CodeDetailDDao {

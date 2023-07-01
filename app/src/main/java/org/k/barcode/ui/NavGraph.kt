@@ -2,13 +2,12 @@ package org.k.barcode.ui
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import kotlinx.coroutines.runBlocking
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.ui.scan.ScanTest
 import org.k.barcode.ui.settings.AppSettings
@@ -24,18 +23,20 @@ fun SetupNavGraph(
 ) {
     NavHost(
         navController = navHostController,
-        startDestination = Screen.CodeSettings.route
+        startDestination = Screen.AppSettings.route
     ) {
         composable(route = Screen.ScanTest.route) {
             ScanTest(paddingValues = paddingValues)
         }
         composable(route = Screen.AppSettings.route) {
-            AppSettings(
-                paddingValues = paddingValues,
-                navHostController = navHostController,
-                viewModel = viewModel,
-                databaseRepository = databaseRepository
-            )
+            runBlocking { databaseRepository.getSettings() }.also {
+                AppSettings(
+                    paddingValues = paddingValues,
+                    navHostController = navHostController,
+                    viewModel = viewModel,
+                    initSettings = it
+                )
+            }
         }
         composable(
             route = Screen.CodeSettings.route,
@@ -56,12 +57,14 @@ fun SetupNavGraph(
                 type = NavType.StringType
             })
         ) {
-            val codeDetails = databaseRepository.getCodeDetailByName(it.arguments?.getString("name")!!)
-
-            CodeDetail(
-                paddingValues = paddingValues,
-                codeDetails = codeDetails
-            )
+            runBlocking {
+                databaseRepository.getCodeDetailByName(it.arguments?.getString("name")!!)
+            }.also {
+                CodeDetail(
+                    paddingValues = paddingValues,
+                    codeDetails = it
+                )
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-package org.k.barcode.data
+package org.k.barcode.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -7,7 +7,7 @@ import org.k.barcode.decoder.DecodeMode
 
 @Entity(tableName = "settings")
 data class Settings(
-    @PrimaryKey val uid: Int,
+    @PrimaryKey var uid: Int,
     @ColumnInfo(name = "decoderEnable") var decoderEnable: Boolean,
     @ColumnInfo(name = "decoderVibrate") var decoderVibrate: Boolean,
     @ColumnInfo(name = "decoderSound") var decoderSound: Boolean,

@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.k.barcode.R
-import org.k.barcode.data.CodeDetails
+import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.settings.send
 
 @Composable

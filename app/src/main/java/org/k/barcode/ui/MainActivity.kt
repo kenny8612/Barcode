@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
         val viewModel: SettingsViewModel by viewModels()
 
         setContent {
-            BarcodeTheme(darkTheme = false) {
+            BarcodeTheme(darkTheme = false, dynamicColor = false) {
                 val navHostController = rememberNavController()
                 var settings by remember { mutableStateOf(false) }
 

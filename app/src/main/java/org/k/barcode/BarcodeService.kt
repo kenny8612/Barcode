@@ -17,6 +17,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.KeyEvent
+import androidx.preference.PreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -27,12 +28,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.k.barcode.data.AppDatabase
-import org.k.barcode.data.CodeDetails
-import org.k.barcode.data.Settings
+import org.k.barcode.model.CodeDetails
+import org.k.barcode.model.Settings
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.data.DecoderRepository
 import org.k.barcode.decoder.BarcodeListener
@@ -86,6 +88,17 @@ class BarcodeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
+        runBlocking {
+            if (PreferenceManager.getDefaultSharedPreferences(this@BarcodeService)
+                    .getBoolean("first_init", true)
+            ) {
+                appDatabase.openHelper.writableDatabase.execSQL("CREATE TABLE settings_bak AS SELECT * FROM settings")
+                appDatabase.openHelper.writableDatabase.execSQL("CREATE TABLE codeDetails_bak AS SELECT * FROM codeDetails")
+                PreferenceManager.getDefaultSharedPreferences(this@BarcodeService).edit()
+                    .putBoolean("first_init", false).apply()
+            }
+        }
 
         val builder = SoundPool.Builder()
         val attrBuilder = AudioAttributes.Builder()
@@ -341,6 +354,15 @@ class BarcodeService : Service() {
         } else if (event.message == Message.UpdateCode) {
             GlobalScope.launch {
                 appDatabase.codeDetailDDao().update(event.arg1 as CodeDetails)
+            }
+        } else if (event.message == Message.RestoreSettings) {
+            GlobalScope.launch {
+                //appDatabase.settingsDao().get(2).also {
+                //    appDatabase.settingsDao().update(it.also { it.uid = settings.uid })
+                //}
+                appDatabase.openHelper.writableDatabase.execSQL("DROP TABLE settings")
+                appDatabase.openHelper.writableDatabase.execSQL("CREATE TABLE settings AS SELECT * FROM settings_bak")
+                //appDatabase.openHelper.writableDatabase.execSQL("INSERT OR IGNORE INTO settings SELECT * FROM settings_bak")
             }
         }
         EventBus.getDefault().removeStickyEvent(event)

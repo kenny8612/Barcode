@@ -18,7 +18,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "database\\decoder.db")
+        Room.databaseBuilder(context, AppDatabase::class.java, "decoder.db")
             .createFromAsset("database/decoder.db").build()
 
     @Provides

@@ -1,4 +1,4 @@
-package org.k.barcode.data
+package org.k.barcode.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
