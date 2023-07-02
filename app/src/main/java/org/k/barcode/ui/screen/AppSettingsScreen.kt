@@ -1,4 +1,4 @@
-package org.k.barcode.ui.settings
+package org.k.barcode.ui.screen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -53,11 +53,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavHostController
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
-import org.k.barcode.data.DatabaseRepository
+import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.Settings
-import org.k.barcode.ui.Screen
 import org.k.barcode.ui.SettingsViewModel
 import org.k.barcode.utils.SettingsUtils.formatKeycode
 import org.k.barcode.utils.SettingsUtils.formatMode
@@ -68,24 +67,24 @@ fun Settings.send() {
 }
 
 @Composable
-fun AppSettings(
+fun AppSettingsScreen(
     paddingValues: PaddingValues,
     navHostController: NavHostController,
     viewModel: SettingsViewModel,
+    decoderManager: DecoderManager,
     initSettings: Settings
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.observeAsState(initSettings)
-    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = paddingValues.calculateTopPadding(), start = 8.dp, end = 8.dp)
-            .verticalScroll(scrollState)
+            .verticalScroll(rememberScrollState())
     ) {
         SwitchEnable(
-            stringResource(id = R.string.scan), settings.decoderEnable
+            stringResource(id = R.string.scan_service), settings.decoderEnable
         ) { enable ->
             settings.copy().also { it.decoderEnable = enable }.send()
         }
@@ -110,10 +109,12 @@ fun AppSettings(
         ) { enable ->
             settings.copy().also { it.releaseDecode = enable }.send()
         }
-        SwitchEnable(
-            stringResource(id = R.string.decoder_light), settings.decoderLight
-        ) { enable ->
-            settings.copy().also { it.decoderLight = enable }.send()
+        if (decoderManager.supportLight()) {
+            SwitchEnable(
+                stringResource(id = R.string.decoder_light), settings.decoderLight
+            ) { enable ->
+                settings.copy().also { it.decoderLight = enable }.send()
+            }
         }
         ListSelect(
             stringResource(id = R.string.decoder_mode),
@@ -162,7 +163,8 @@ fun AppSettings(
         ) { result ->
             settings.copy().also { it.continuousDecodeInterval = result }.send()
         }
-        CodesEditView(navHostController)
+        if(decoderManager.supportCode())
+            CodesEditView(navHostController = navHostController)
         RestoreSettings()
     }
 }
@@ -216,7 +218,9 @@ fun RestoreSettings() {
 }
 
 @Composable
-fun CodesEditView(navHostController: NavHostController) {
+fun CodesEditView(
+    navHostController: NavHostController
+) {
     TextButton(
         modifier = Modifier
             .fillMaxWidth()

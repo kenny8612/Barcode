@@ -1,7 +1,9 @@
 package org.k.barcode.decoder
 
+import org.k.barcode.model.CodeDetails
+
 class HardDecoder : BaseDecoder() {
-    override fun init(): Boolean {
+    override fun init(codeDetails: List<CodeDetails>): Boolean {
         return true
     }
 
@@ -10,7 +12,6 @@ class HardDecoder : BaseDecoder() {
     }
 
     override fun startDecode() {
-        Thread.sleep(10)
         barcodeResultCallback?.onSuccess("https://developer.android.google.cn/jetpack?hl=en".toByteArray(), "QR")
     }
 

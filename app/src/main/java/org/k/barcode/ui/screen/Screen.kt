@@ -1,4 +1,4 @@
-package org.k.barcode.ui
+package org.k.barcode.ui.screen
 
 sealed class Screen(val route: String) {
     object ScanTest : Screen("scan_test_screen")

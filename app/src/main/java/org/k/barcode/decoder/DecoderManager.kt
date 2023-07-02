@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.k.barcode.model.BarcodeInfo
+import org.k.barcode.model.CodeDetails
 
 interface BarcodeResultCallback {
     fun onSuccess(data: ByteArray, aim: String)
@@ -18,7 +19,6 @@ interface BarcodeResultCallback {
 class DecoderManager private constructor() : BarcodeResultCallback {
     private val barcodeDecoder: BarcodeDecoder
 
-    private var decoderType = DECODER_TYPE_HARD
     private var state = DecoderState.Closed
 
     private var decoderEventListeners: MutableList<DecoderEventListener> = ArrayList()
@@ -31,7 +31,7 @@ class DecoderManager private constructor() : BarcodeResultCallback {
     private var decodeTimeoutJob: Job? = null
 
     init {
-        decoderType = initDecoderType()
+        val decoderType = initDecoderType()
         barcodeDecoder = when (decoderType) {
             DECODER_TYPE_NLS -> {
                 NlsDecoder()
@@ -53,14 +53,19 @@ class DecoderManager private constructor() : BarcodeResultCallback {
                 MSG_OPEN -> {
                     if (state == DecoderState.Closed) {
                         println("open barcode decoder")
-                        if (barcodeDecoder.init())
-                            state = DecoderState.Idle
-                        synchronized(decoderEventListeners) {
-                            for (listener in decoderEventListeners)
-                                listener.onEvent(
-                                    if (state == DecoderState.Closed) DecoderEvent.Closed
-                                    else DecoderEvent.Opened
-                                )
+                        val objectOfTypeAny = msg.obj
+                        if (objectOfTypeAny is List<*>) {
+                            val codeDetailsList = objectOfTypeAny.filterIsInstance<CodeDetails>()
+                            if (barcodeDecoder.init(codeDetailsList))
+                                state = DecoderState.Idle
+
+                            synchronized(decoderEventListeners) {
+                                for (listener in decoderEventListeners)
+                                    listener.onEvent(
+                                        if (state == DecoderState.Closed) DecoderEvent.Closed
+                                        else DecoderEvent.Opened
+                                    )
+                            }
                         }
                     }
                 }
@@ -118,13 +123,28 @@ class DecoderManager private constructor() : BarcodeResultCallback {
                         state = DecoderState.Idle
                     }
                 }
+
+                MSG_UPDATE_CODES -> {
+                    if (state != DecoderState.Closed) {
+                        val objectOfTypeAny = msg.obj
+                        if (objectOfTypeAny is List<*>) {
+                            val codeDetailsList = objectOfTypeAny.filterIsInstance<CodeDetails>()
+                            barcodeDecoder.updateCode(codeDetailsList)
+                        }
+                    }
+                }
+
+                MSG_DECODER_LIGHT -> {
+                    if (state != DecoderState.Closed)
+                        barcodeDecoder.light(msg.obj as Boolean)
+                }
             }
             super.handleMessage(msg)
         }
     }
 
     private fun initDecoderType(): Int {
-        return DECODER_TYPE_HARD
+        return DECODER_TYPE_NLS
     }
 
     fun addEventListener(decoderEventListener: DecoderEventListener) {
@@ -153,8 +173,8 @@ class DecoderManager private constructor() : BarcodeResultCallback {
         }
     }
 
-    fun open() {
-        workHandler.obtainMessage(MSG_OPEN).sendToTarget()
+    fun open(codeDetails: List<CodeDetails>) {
+        workHandler.obtainMessage(MSG_OPEN, codeDetails).sendToTarget()
     }
 
     fun close() {
@@ -169,6 +189,14 @@ class DecoderManager private constructor() : BarcodeResultCallback {
         workHandler.obtainMessage(MSG_CANCEL_DECODER).sendToTarget()
     }
 
+    fun updateCode(codeDetails: List<CodeDetails>) {
+        workHandler.obtainMessage(MSG_UPDATE_CODES, codeDetails).sendToTarget()
+    }
+
+    fun supportLight() = barcodeDecoder.supportLight()
+
+    fun supportCode() = barcodeDecoder.supportCode()
+
     override fun onSuccess(data: ByteArray, aim: String) {
         val barcodeInfo = BarcodeInfo(data, aim, System.currentTimeMillis() - startDecodeTime)
         workHandler.obtainMessage(MSG_DECODE_RESULT, barcodeInfo).sendToTarget()
@@ -176,6 +204,10 @@ class DecoderManager private constructor() : BarcodeResultCallback {
 
     override fun onTimeout() {
         workHandler.obtainMessage(MSG_DECODE_TIMEOUT).sendToTarget()
+    }
+
+    fun setLight(enable: Boolean) {
+        workHandler.obtainMessage(MSG_DECODER_LIGHT, enable).sendToTarget()
     }
 
     companion object {
@@ -192,6 +224,8 @@ class DecoderManager private constructor() : BarcodeResultCallback {
         private const val MSG_CANCEL_DECODER = 3
         private const val MSG_DECODE_RESULT = 4
         private const val MSG_DECODE_TIMEOUT = 5
+        private const val MSG_UPDATE_CODES = 6
+        private const val MSG_DECODER_LIGHT = 7
 
         private const val MAX_DECODE_TIMEOUT = 5000L
     }

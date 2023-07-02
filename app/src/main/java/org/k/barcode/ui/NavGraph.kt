@@ -1,6 +1,7 @@
 package org.k.barcode.ui
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -9,31 +10,44 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import kotlinx.coroutines.runBlocking
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.ui.scan.ScanTest
-import org.k.barcode.ui.settings.AppSettings
-import org.k.barcode.ui.settings.CodeDetail
-import org.k.barcode.ui.settings.CodeSettingsScreen
+import org.k.barcode.ui.screen.Screen
+import org.k.barcode.decoder.DecoderManager
+import org.k.barcode.ui.screen.ScanTestScreen
+import org.k.barcode.ui.screen.AppSettingsScreen
+import org.k.barcode.ui.screen.CodeDetailScreen
+import org.k.barcode.ui.screen.CodeSettingsScreen
 
 @Composable
 fun SetupNavGraph(
     navHostController: NavHostController,
+    snackBarHostState: SnackbarHostState,
     paddingValues: PaddingValues,
     viewModel: SettingsViewModel,
-    databaseRepository: DatabaseRepository
+    databaseRepository: DatabaseRepository,
+    decoderManager: DecoderManager
 ) {
+
     NavHost(
         navController = navHostController,
-        startDestination = Screen.AppSettings.route
+        startDestination = Screen.ScanTest.route
     ) {
         composable(route = Screen.ScanTest.route) {
-            ScanTest(paddingValues = paddingValues)
+            runBlocking { databaseRepository.getSettings() }.also {
+                ScanTestScreen(
+                    paddingValues = paddingValues,
+                    snackBarHostState = snackBarHostState,
+                    viewModel = viewModel,
+                    initSettings = it
+                )
+            }
         }
         composable(route = Screen.AppSettings.route) {
             runBlocking { databaseRepository.getSettings() }.also {
-                AppSettings(
+                AppSettingsScreen(
                     paddingValues = paddingValues,
                     navHostController = navHostController,
                     viewModel = viewModel,
+                    decoderManager = decoderManager,
                     initSettings = it
                 )
             }
@@ -60,7 +74,7 @@ fun SetupNavGraph(
             runBlocking {
                 databaseRepository.getCodeDetailByName(it.arguments?.getString("name")!!)
             }.also {
-                CodeDetail(
+                CodeDetailScreen(
                     paddingValues = paddingValues,
                     codeDetails = it
                 )

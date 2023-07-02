@@ -2,12 +2,13 @@ package org.k.barcode.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import org.k.barcode.decoder.DecodeMode
 
 @Entity(tableName = "settings")
 data class Settings(
-    @PrimaryKey var uid: Int,
+    @PrimaryKey val uid: Int,
     @ColumnInfo(name = "decoderEnable") var decoderEnable: Boolean,
     @ColumnInfo(name = "decoderVibrate") var decoderVibrate: Boolean,
     @ColumnInfo(name = "decoderSound") var decoderSound: Boolean,
@@ -20,5 +21,5 @@ data class Settings(
     @ColumnInfo(name = "attachKeycode") var attachKeycode: Int,
     @ColumnInfo(name = "decoderFilterCharacters") var decoderFilterCharacters: String,
     @ColumnInfo(name = "releaseDecode") var releaseDecode: Boolean,
-    @ColumnInfo(name = "decoderLight") var decoderLight: Boolean,
+    @ColumnInfo(name = "decoderLight") var decoderLight: Boolean
 )

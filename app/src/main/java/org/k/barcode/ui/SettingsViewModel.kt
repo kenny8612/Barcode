@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import org.k.barcode.Constant.CODE_1D
+import org.k.barcode.Constant.CODE_2D
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.model.Settings
 import org.k.barcode.model.CodeDetails
@@ -25,13 +27,13 @@ class SettingsViewModel @Inject constructor(databaseRepository: DatabaseReposito
     val code2D: LiveData<List<CodeDetails>> = _code2D
 
     init {
-        databaseRepository.settings.onEach {
+        databaseRepository.getSettingsFlow().onEach {
             _settings.value = it
         }.launchIn(viewModelScope)
-        databaseRepository.codes1D.onEach {
+        databaseRepository.getCodesFlow(CODE_1D).onEach {
             _code1D.value = it
         }.launchIn(viewModelScope)
-        databaseRepository.codes2D.onEach {
+        databaseRepository.getCodesFlow(CODE_2D).onEach {
             _code2D.value = it
         }.launchIn(viewModelScope)
     }

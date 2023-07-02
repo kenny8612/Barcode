@@ -1,4 +1,4 @@
-package org.k.barcode.ui.settings
+package org.k.barcode.ui.screen
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -32,15 +31,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import org.greenrobot.eventbus.EventBus
+import org.k.barcode.Constant.CODE_1D
+import org.k.barcode.Constant.CODE_2D
+import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
-import org.k.barcode.ui.Screen
 import org.k.barcode.ui.SettingsViewModel
 
 fun CodeDetails.send() {
@@ -68,21 +68,21 @@ fun CodeSettingsScreen(
             navHostController.currentBackStackEntry?.arguments?.putInt("index", it)
         }
         when (selectIndex) {
-            0 -> {
+            CODE_1D -> {
                 CodeListUI(
                     navHostController = navHostController,
                     codeList = code1DList.value
                 )
             }
 
-            1 -> {
+            CODE_2D -> {
                 CodeListUI(
                     navHostController = navHostController,
                     codeList = code2DList.value
                 )
             }
 
-            else -> {
+            CODE_OTHERS -> {
 
             }
         }
@@ -106,7 +106,7 @@ fun CodeTypeTitle(currentIndex: Int, onClick: (selectIndex: Int) -> Unit) {
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
             ),
             onClick = {
-                onClick(0)
+                onClick(CODE_1D)
             }) {
             Text(text = stringResource(id = R.string.code1D))
         }
@@ -120,7 +120,7 @@ fun CodeTypeTitle(currentIndex: Int, onClick: (selectIndex: Int) -> Unit) {
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
             ),
             onClick = {
-                onClick(1)
+                onClick(CODE_2D)
             }) {
             Text(text = stringResource(id = R.string.code2D))
         }
@@ -134,7 +134,7 @@ fun CodeTypeTitle(currentIndex: Int, onClick: (selectIndex: Int) -> Unit) {
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
             ),
             onClick = {
-                onClick(2)
+                onClick(CODE_OTHERS)
             }) {
             Text(text = stringResource(id = R.string.others))
         }
@@ -181,8 +181,7 @@ fun CodeItem(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 16.dp),
-                text = codeDetails.name,
-                fontWeight = FontWeight.Medium
+                text = codeDetails.name
             )
             IconButton(
                 onClick = {
