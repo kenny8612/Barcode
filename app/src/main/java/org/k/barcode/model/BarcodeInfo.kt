@@ -2,8 +2,8 @@ package org.k.barcode.model
 
 data class BarcodeInfo(
     val sourceData: ByteArray,
-    val aim: String,
-    val decodeTime: Long,
+    val aim: String? = null,
+    val decodeTime: Long = 0,
     var formatData:String? = null,
 ) {
     override fun equals(other: Any?): Boolean {

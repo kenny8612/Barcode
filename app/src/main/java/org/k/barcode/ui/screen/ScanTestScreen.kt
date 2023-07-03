@@ -69,11 +69,7 @@ fun ScanTestScreen(
     val barcodeList = remember { mutableStateListOf<String>() }
     var barcode by remember {
         mutableStateOf(
-            BarcodeInfo(
-                "".toByteArray(),
-                aim = "",
-                decodeTime = 0L
-            )
+            BarcodeInfo(sourceData = "".toByteArray())
         )
     }
     var scanTotal by remember { mutableStateOf(0L) }
@@ -211,11 +207,13 @@ fun DecodeResult(barcodeInfo: BarcodeInfo, scanTotal: Long) {
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                modifier = Modifier,
-                text = stringResource(id = R.string.barcode_info_value, barcodeInfo.aim),
-                fontWeight = FontWeight.Medium
-            )
+            barcodeInfo.aim?.let {
+                Text(
+                    modifier = Modifier,
+                    text = stringResource(id = R.string.barcode_info_value, it),
+                    fontWeight = FontWeight.Medium
+                )
+            }
             Text(
                 modifier = Modifier,
                 text = stringResource(id = R.string.decode_time_value, barcodeInfo.decodeTime),

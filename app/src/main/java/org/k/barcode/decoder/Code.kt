@@ -1,27 +1,27 @@
 package org.k.barcode.decoder
 
-sealed class Code(val route: String) {
-    object EAN8 : Code("EAN-8")
-    object EAN13 : Code("EAN-13")
-    object UPC_A : Code("UPC-A")
-    object UPC_E : Code("UPC-E")
-    object CodaBar : Code("CodaBar")
-    object Code11 : Code("CODE 11")
-    object Code39 : Code("CODE 39")
-    object Code128 : Code("CODE 128")
-    object RSS : Code("RSS")
-    object Int25 : Code("Interleaved 2 of 5")
-    object Matrix25 : Code("Matrix 2 of 5")
-    object MSI : Code("MSI")
-    object Gs1_128 : Code("GS1-128")
-    object Telepen : Code("Telepen")
-    object GM : Code("Grid Matrix")
-    object DotCode : Code("DotCode")
-    object Codablock : Code("Codablock")
-    object QR : Code("QR")
-    object Maxicode : Code("Maxicode")
-    object MicroPDF : Code("MicroPDF")
-    object PDF417 : Code("PDF417")
-    object Aztec : Code("Aztec")
-    object HanXin : Code("Han Xin")
+enum class Code(val aliasName: String) {
+    EAN8("EAN-8"),
+    EAN13("EAN-13"),
+    UPC_A("UPC-A"),
+    UPC_E("UPC-E"),
+    CodaBar("CodaBar"),
+    Code11("CODE 11"),
+    Code39("CODE 39"),
+    Code93("CODE 93"),
+    Code128("CODE 128"),
+    INT25("Interleaved 2 of 5"),
+    Matrix25("Matrix 2 of 5"),
+    MSI("MSI"),
+    Telepen("Telepen"),
+    GridMatrix("Grid Matrix"),
+    DotCode("DotCode"),
+    CodaBlock("CodaBlock"),
+    QR("QR"),
+    MaxiCode("MaxiCode"),
+    MicroPDF("MicroPDF"),
+    PDF417("PDF417"),
+    Aztec("Aztec"),
+    HanXin("Han Xin"),
+    DataMatrix("Data Matrix")
 }

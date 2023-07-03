@@ -15,7 +15,8 @@ data class CodeDetails(
     @ColumnInfo(name = "supplemental2") var supplemental2: Boolean,
     @ColumnInfo(name = "supplemental5") var supplemental5: Boolean,
     @ColumnInfo(name = "upcPreamble") var upcPreamble: Int,
-    @ColumnInfo(name = "clsiEditing") var clsiEditing: Boolean,
+    @ColumnInfo(name = "startStopCharacters") var startStopCharacters: Boolean,
+    @ColumnInfo(name = "fullAscii") var fullAscii: Boolean,
     @ColumnInfo(name = "minLength") var minLength: Int,
-    @ColumnInfo(name = "maxLength") var maxLength: Int,
+    @ColumnInfo(name = "maxLength") var maxLength: Int
 )

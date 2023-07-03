@@ -22,7 +22,8 @@ object DataModule {
     @Provides
     @Singleton
     fun provideDecoderManager(
-    ): DecoderManager = DecoderManager.instance
+        @ApplicationContext context: Context
+    ): DecoderManager = DecoderManager.getInstance(context)!!
 
     @Provides
     @Singleton

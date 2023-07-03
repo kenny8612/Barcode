@@ -51,6 +51,7 @@ import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.model.Settings
 import org.k.barcode.ui.MainActivity
+import org.k.barcode.ui.screen.send
 import java.nio.charset.Charset
 import javax.inject.Inject
 
@@ -73,10 +74,10 @@ class BarcodeService : Service() {
     lateinit var prefs: SharedPreferences
 
     @Inject
-    lateinit var notificationManager:NotificationManager
+    lateinit var notificationManager: NotificationManager
 
     @Inject
-    lateinit var vibrator:Vibrator
+    lateinit var vibrator: Vibrator
 
     private lateinit var settings: Settings
 
@@ -130,6 +131,8 @@ class BarcodeService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         soundPool.release()
+        notificationManager.cancelAll()
+        notificationManager.deleteNotificationChannel(BARCODE_CHANNEL_ID)
         unregisterScannerKeyReceiver()
         cancelSettingsDataFlow()
         cancelDecoderEventFlow()
@@ -224,8 +227,8 @@ class BarcodeService : Service() {
                     DecoderEvent.Opened -> {
                         println("decoder opened")
                         val notification = Notification.Builder.recoverBuilder(this, notification)
-                                .setContentTitle(getString(R.string.service_start))
-                                .build()
+                            .setContentTitle(getString(R.string.service_start))
+                            .build()
                         notificationManager.notify(NOTIFICATION_ID, notification)
                         observeBarcodeFlow()
                     }
@@ -238,6 +241,11 @@ class BarcodeService : Service() {
                         notificationManager.notify(NOTIFICATION_ID, notification)
                         cancelBarcodeFlows()
                         continuousDecodeState = ContinuousDecodeState.Stop
+                    }
+
+                    DecoderEvent.Error -> {
+                        println("decoder error")
+                        settings.copy(decoderEnable = false).send()
                     }
 
                     DecoderEvent.DecodeTimeout -> {

@@ -85,50 +85,47 @@ fun AppSettingsScreen(
     ) {
         SwitchEnable(
             stringResource(id = R.string.scan_service), settings.decoderEnable
-        ) { enable ->
-            settings.copy().also { it.decoderEnable = enable }.send()
+        ) {
+            settings.copy(decoderEnable = it).send()
         }
         SwitchEnable(
-            stringResource(id = R.string.decoder_vibrate),
-            settings.decoderVibrate,
-        ) { enable ->
-            settings.copy().also { it.decoderVibrate = enable }.send()
+            stringResource(id = R.string.decoder_vibrate), settings.decoderVibrate,
+        ) {
+            settings.copy(decoderVibrate = it).send()
         }
         SwitchEnable(
             stringResource(id = R.string.decoder_sound), settings.decoderSound
-        ) { enable ->
-            settings.copy().also { it.decoderSound = enable }.send()
+        ) {
+            settings.copy(decoderSound = it).send()
         }
         SwitchEnable(
             stringResource(id = R.string.continuous_decode), settings.continuousDecode
-        ) { enable ->
-            settings.copy().also { it.continuousDecode = enable }.send()
+        ) {
+            settings.copy(continuousDecode = it).send()
         }
         SwitchEnable(
             stringResource(id = R.string.release_decode), settings.releaseDecode
-        ) { enable ->
-            settings.copy().also { it.releaseDecode = enable }.send()
+        ) {
+            settings.copy(releaseDecode = it).send()
         }
         if (decoderManager.supportLight()) {
-            SwitchEnable(
-                stringResource(id = R.string.decoder_light), settings.decoderLight
-            ) { enable ->
-                settings.copy().also { it.decoderLight = enable }.send()
+            SwitchEnable(stringResource(id = R.string.decoder_light), settings.decoderLight) {
+                settings.copy(decoderLight = it).send()
             }
         }
         ListSelect(
             stringResource(id = R.string.decoder_mode),
             stringArrayResource(id = R.array.decoder_mode_entries),
             stringArrayResource(id = R.array.decoder_mode_entries)[settings.decoderMode.ordinal]
-        ) { result ->
-            settings.copy().also { it.decoderMode = formatMode(context, result) }.send()
+        ) {
+            settings.copy(decoderMode = formatMode(context, it)).send()
         }
         ListSelect(
             stringResource(id = R.string.decoder_charset),
             stringArrayResource(id = R.array.decoder_charset_entries),
             settings.decoderCharset
-        ) { result ->
-            settings.copy().also { it.decoderCharset = result }.send()
+        ) {
+            settings.copy(decoderCharset = it).send()
         }
         ListSelect(
             stringResource(id = R.string.attach_keycode),
@@ -136,34 +133,34 @@ fun AppSettingsScreen(
             stringArrayResource(id = R.array.attach_keycode_entries)[keyCodeToIndex(
                 context, settings.attachKeycode
             )]
-        ) { result ->
-            settings.copy().also { it.attachKeycode = formatKeycode(context, result) }.send()
+        ) {
+            settings.copy(attachKeycode = formatKeycode(context, it)).send()
         }
         EditViewText(
             stringResource(id = R.string.decoder_prefix), settings.decoderPrefix
-        ) { result ->
-            settings.copy().also { it.decoderPrefix = result }.send()
+        ) {
+            settings.copy(decoderPrefix = it).send()
         }
         EditViewText(
             stringResource(id = R.string.decoder_suffix), settings.decodeSuffix
-        ) { result ->
-            settings.copy().also { it.decodeSuffix = result }.send()
+        ) {
+            settings.copy(decodeSuffix = it).send()
         }
         EditViewText(
             stringResource(id = R.string.decoder_filter_characters),
             settings.decoderFilterCharacters
-        ) { result ->
-            settings.copy().also { it.decoderFilterCharacters = result }.send()
+        ) {
+            settings.copy(decoderFilterCharacters = it).send()
         }
         EditViewNumber(
             stringResource(id = R.string.continuous_decode_interval),
             settings.continuousDecodeInterval,
             200,
             10 * 1000
-        ) { result ->
-            settings.copy().also { it.continuousDecodeInterval = result }.send()
+        ) {
+            settings.copy(continuousDecodeInterval = it).send()
         }
-        if(decoderManager.supportCode())
+        if (decoderManager.supportCode())
             CodesEditView(navHostController = navHostController)
         RestoreSettings()
     }

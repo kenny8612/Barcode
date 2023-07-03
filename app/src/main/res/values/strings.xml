@@ -37,4 +37,13 @@
     <string name="scan_service">Scan service</string>
     <string name="scan">Scan</string>
     <string name="copy_to_clipboard">Copied to clipboard</string>
+    <string name="transmit_no_preamble">Transmit no preamble</string>
+    <string name="transmit_system_character_only">Transmit System Character Only</string>
+    <string name="transmit_system_character_and_country_code">Transmit System Character and Country Code</string>
+    <string name="min_length">Min length</string>
+    <string name="max_length">Max length</string>
+    <string name="save_code">Save</string>
+    <string name="start_stop_characters">Start/Stop characters</string>
+    <string name="full_ascii">Full ascii</string>
+    <string name="checkDigit">Check digit</string>
 </resources>

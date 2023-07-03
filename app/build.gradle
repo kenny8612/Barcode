@@ -35,6 +35,11 @@ android {
                 arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
             }
         }
+        externalNativeBuild {
+            cmake {
+                cppFlags ''
+            }
+        }
     }
 
     buildTypes {
@@ -44,7 +49,7 @@ android {
             signingConfig signingConfigs.ht500_an10
         }
         debug {
-            //signingConfig signingConfigs.ht500_an10
+            signingConfig signingConfigs.ht500_an10
         }
     }
     compileOptions {
@@ -67,6 +72,12 @@ android {
     }
     kapt {
         correctErrorTypes true
+    }
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
     }
 }
 

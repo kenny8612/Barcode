@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "871b3e5c21799ba46b26170756c64dc3",
+    "identityHash": "85ae20b5b378f1af7320e44fac3b906f",
     "entities": [
       {
         "tableName": "settings",
@@ -104,7 +104,7 @@
       },
       {
         "tableName": "codeDetails",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `type` INTEGER NOT NULL, `enable` INTEGER NOT NULL, `transmitCheckDigit` INTEGER NOT NULL, `checkDigit` INTEGER NOT NULL, `supplemental2` INTEGER NOT NULL, `supplemental5` INTEGER NOT NULL, `upcPreamble` INTEGER NOT NULL, `clsiEditing` INTEGER NOT NULL, `minLength` INTEGER NOT NULL, `maxLength` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `type` INTEGER NOT NULL, `enable` INTEGER NOT NULL, `transmitCheckDigit` INTEGER NOT NULL, `checkDigit` INTEGER NOT NULL, `supplemental2` INTEGER NOT NULL, `supplemental5` INTEGER NOT NULL, `upcPreamble` INTEGER NOT NULL, `startStopCharacters` INTEGER NOT NULL, `fullAscii` INTEGER NOT NULL, `minLength` INTEGER NOT NULL, `maxLength` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "uid",
@@ -161,8 +161,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "clsiEditing",
-            "columnName": "clsiEditing",
+            "fieldPath": "startStopCharacters",
+            "columnName": "startStopCharacters",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullAscii",
+            "columnName": "fullAscii",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -192,7 +198,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '871b3e5c21799ba46b26170756c64dc3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '85ae20b5b378f1af7320e44fac3b906f')"
     ]
   }
 }

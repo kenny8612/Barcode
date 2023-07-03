@@ -123,13 +123,16 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        if (Build.VERSION.SDK_INT >= 33)
+        if (Build.VERSION.SDK_INT >= 33) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startForegroundService(Intent(this, BarcodeService::class.java))
+        }
     }
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted)
-                startForegroundService(Intent(this@MainActivity, BarcodeService::class.java))
+                startForegroundService(Intent(this, BarcodeService::class.java))
         }
 }

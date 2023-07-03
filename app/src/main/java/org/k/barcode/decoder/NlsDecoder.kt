@@ -1,23 +1,44 @@
 package org.k.barcode.decoder
 
+import android.content.Context
+import com.dawn.decoderapijni.SoftEngine
+import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_SUCC
+import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_TIMEOUT
 import org.k.barcode.model.CodeDetails
 
-class NlsDecoder : BaseDecoder() {
+class NlsDecoder constructor(private val context: Context) : BaseDecoder(),
+    SoftEngine.ScanningCallback {
+    private var softEngine: SoftEngine? = null
+
     override fun init(codeDetails: List<CodeDetails>): Boolean {
-        updateCode(codeDetails)
-        return true
+        softEngine = SoftEngine.getInstance()
+        softEngine?.setNdkSystemLanguage(0)
+        val result = softEngine?.initSoftEngine(
+            context.getDir(
+                "nls_data",
+                Context.MODE_PRIVATE
+            ).absolutePath
+        )
+        if (result == true) {
+            softEngine?.Open()
+            updateCode(codeDetails)
+            softEngine?.setScanningCallback(this)
+            return true
+        }
+        return false
     }
 
     override fun deInit() {
-
+        softEngine?.Close()
+        softEngine?.Deinit()
     }
 
     override fun startDecode() {
-        barcodeResultCallback?.onSuccess("https://developer.android.google.cn/jetpack?hl=en".toByteArray(), "QR")
+        softEngine?.StartDecode()
     }
 
     override fun cancelDecode() {
-
+        softEngine?.StopDecode()
     }
 
     override fun supportLight(): Boolean = true
@@ -27,95 +48,95 @@ class NlsDecoder : BaseDecoder() {
     override fun updateCode(codeDetails: List<CodeDetails>) {
         codeDetails.forEach {
             when (it.name) {
-                Code.Code128.route -> {
+                Code.Code128.aliasName -> {
 
                 }
 
-                Code.Code11.route -> {
+                Code.Code11.aliasName -> {
 
                 }
 
-                Code.Code39.route -> {
+                Code.Code39.aliasName -> {
 
                 }
 
-                Code.DotCode.route -> {
+                Code.Code93.aliasName -> {
 
                 }
 
-                Code.EAN8.route -> {
+                Code.DotCode.aliasName -> {
 
                 }
 
-                Code.EAN13.route -> {
+                Code.EAN8.aliasName -> {
 
                 }
 
-                Code.UPC_A.route -> {
+                Code.EAN13.aliasName -> {
 
                 }
 
-                Code.UPC_E.route -> {
+                Code.UPC_A.aliasName -> {
 
                 }
 
-                Code.Aztec.route -> {
+                Code.UPC_E.aliasName -> {
 
                 }
 
-                Code.CodaBar.route -> {
+                Code.Aztec.aliasName -> {
 
                 }
 
-                Code.Codablock.route -> {
+                Code.CodaBar.aliasName -> {
 
                 }
 
-                Code.GM.route -> {
+                Code.CodaBlock.aliasName -> {
 
                 }
 
-                Code.Gs1_128.route -> {
+                Code.GridMatrix.aliasName -> {
 
                 }
 
-                Code.Int25.route -> {
+                Code.INT25.aliasName -> {
 
                 }
 
-                Code.HanXin.route -> {
+                Code.HanXin.aliasName -> {
 
                 }
 
-                Code.MSI.route -> {
+                Code.MSI.aliasName -> {
 
                 }
 
-                Code.Maxicode.route -> {
+                Code.MaxiCode.aliasName -> {
 
                 }
 
-                Code.MicroPDF.route -> {
+                Code.MicroPDF.aliasName -> {
 
                 }
 
-                Code.RSS.route -> {
+                Code.Matrix25.aliasName -> {
 
                 }
 
-                Code.Matrix25.route -> {
+                Code.Telepen.aliasName -> {
 
                 }
 
-                Code.Telepen.route -> {
+                Code.QR.aliasName -> {
 
                 }
 
-                Code.QR.route -> {
+                Code.PDF417.aliasName -> {
 
                 }
 
-                Code.PDF417.route -> {
+                Code.DataMatrix.aliasName -> {
 
                 }
             }
@@ -124,5 +145,29 @@ class NlsDecoder : BaseDecoder() {
 
     override fun light(enable: Boolean) {
 
+    }
+
+    override fun onScanningCallback(
+        eventCode: Int,
+        type: Int,
+        code: ByteArray?,
+        length: Int
+    ): Int {
+        when (eventCode) {
+            SCN_EVENT_DEC_SUCC -> {
+                code?.let {
+                    val buffer = ByteArray(length - 128)
+                    System.arraycopy(it, 128, buffer, 0, length - 128)
+                    barcodeResultCallback?.onSuccess(buffer, String(it, 0, 3))
+                }
+            }
+            SCN_EVENT_DEC_TIMEOUT -> {
+                barcodeResultCallback?.onTimeout()
+            }
+            else -> {
+                barcodeResultCallback?.onCancel()
+            }
+        }
+        return 0
     }
 }

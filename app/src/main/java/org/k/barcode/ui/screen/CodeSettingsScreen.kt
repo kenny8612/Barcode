@@ -1,11 +1,13 @@
 package org.k.barcode.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import org.greenrobot.eventbus.EventBus
@@ -168,33 +171,26 @@ fun CodeItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clickable { navHostController.navigate(route = Screen.CodeDetail.codeName(codeDetails.name)) },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 modifier = Modifier
-                    .weight(1f)
                     .padding(start = 16.dp),
-                text = codeDetails.name
+                text = codeDetails.name,
+                fontWeight = FontWeight.Medium
             )
-            IconButton(
-                onClick = {
-                    navHostController.navigate(route = Screen.CodeDetail.codeName(codeDetails.name))
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null
-                )
-            }
             Checkbox(
-                modifier = Modifier.padding(end = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(align = Alignment.End)
+                    .padding(end = 4.dp),
                 checked = codeDetails.enable,
                 onCheckedChange = { enable ->
                     codeDetails.copy().also { it.enable = enable }.send()

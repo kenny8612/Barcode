@@ -76,6 +76,7 @@ fun SetupNavGraph(
             }.also {
                 CodeDetailScreen(
                     paddingValues = paddingValues,
+                    navHostController = navHostController,
                     codeDetails = it
                 )
             }
