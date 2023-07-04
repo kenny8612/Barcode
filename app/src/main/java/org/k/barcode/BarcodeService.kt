@@ -252,6 +252,10 @@ class BarcodeService : Service() {
                         println("decode timeout")
                         continuousDecode()
                     }
+
+                    DecoderEvent.DecodeCancel -> {
+                        println("decode cancel")
+                    }
                 }
             }.launchIn(CoroutineScope(Dispatchers.IO))
     }
@@ -329,77 +333,79 @@ class BarcodeService : Service() {
         continuousDecodeState = ContinuousDecodeState.Stop
     }
 
-    private fun parseBarcode(barcodeInfo: BarcodeInfo) {
-        var formatData = String(barcodeInfo.sourceData, 0, barcodeInfo.sourceData.size)
-        if (settings.decoderCharset != "AUTO") {
-            try {
-                formatData = String(
-                    barcodeInfo.sourceData,
-                    0,
-                    barcodeInfo.sourceData.size,
-                    Charset.forName(settings.decoderCharset)
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-        if (settings.decoderPrefix.isNotEmpty())
-            formatData = settings.decoderPrefix + formatData
-        if (settings.decodeSuffix.isNotEmpty())
-            formatData += settings.decodeSuffix
-
-        if (settings.decoderFilterCharacters.isNotEmpty())
-            formatData = formatData.replace(settings.decoderFilterCharacters, "")
-
-        barcodeInfo.formatData = formatData
-
-        if (settings.decoderSound)
-            playSound()
-        if (settings.decoderVibrate)
-            vibrate()
-
-        when (settings.decoderMode) {
-            DecodeMode.Focus -> {
-                val intent = Intent(ACTION_INPUT_INJECT)
-                intent.putExtra("content", barcodeInfo.formatData)
-                intent.putExtra("simulateKeyboard", settings.attachKeycode != 0)
-                intent.putExtra("simulateKeyboard_keycode", settings.attachKeycode)
-                intent.putExtra("deleteSurroundingText", false)
-                sendBroadcast(intent)
-            }
-
-            DecodeMode.Broadcast -> {
-                val intent = Intent(ACTION_DECODE_DATA)
-                intent.putExtra("source_byte", barcodeInfo.sourceData)
-                intent.putExtra("barcode_string", barcodeInfo.formatData)
-                intent.putExtra("decode_time", barcodeInfo.decodeTime)
-                intent.putExtra("aim_string", barcodeInfo.aim)
-                sendBroadcast(intent)
-            }
-
-            DecodeMode.Simulate -> {
-                val keyList = barcodeInfo.toKeyEvents()
-                for (key in keyList) {
-                    simulateKey(key)
-                    Thread.sleep(10)
-                }
-                if (settings.attachKeycode != 0)
-                    simulateKey(KeyEventEx(settings.attachKeycode))
-            }
-
-            DecodeMode.Clipboard -> {
-                val clipboardManager =
-                    getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboardManager.setPrimaryClip(
-                    ClipData.newPlainText(
-                        "BarcodeText",
-                        barcodeInfo.formatData
+    private suspend fun parseBarcode(barcodeInfo: BarcodeInfo) {
+        barcodeInfo.sourceData?.let {
+            var formatData = String(it, 0, it.size)
+            if (settings.decoderCharset != "AUTO") {
+                try {
+                    formatData = String(
+                        it,
+                        0,
+                        it.size,
+                        Charset.forName(settings.decoderCharset)
                     )
-                )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
-        }
+            if (settings.decoderPrefix.isNotEmpty())
+                formatData = settings.decoderPrefix + formatData
+            if (settings.decodeSuffix.isNotEmpty())
+                formatData += settings.decodeSuffix
 
-        barcodeListener?.onBarcode(barcodeInfo) // for scan test
+            if (settings.decoderFilterCharacters.isNotEmpty())
+                formatData = formatData.replace(settings.decoderFilterCharacters, "")
+
+            barcodeInfo.formatData = formatData
+
+            if (settings.decoderSound)
+                playSound()
+            if (settings.decoderVibrate)
+                vibrate()
+
+            when (settings.decoderMode) {
+                DecodeMode.Focus -> {
+                    val intent = Intent(ACTION_INPUT_INJECT)
+                    intent.putExtra("content", barcodeInfo.formatData)
+                    intent.putExtra("simulateKeyboard", settings.attachKeycode != 0)
+                    intent.putExtra("simulateKeyboard_keycode", settings.attachKeycode)
+                    intent.putExtra("deleteSurroundingText", false)
+                    sendBroadcast(intent)
+                }
+
+                DecodeMode.Broadcast -> {
+                    val intent = Intent(ACTION_DECODE_DATA)
+                    intent.putExtra("source_byte", it)
+                    intent.putExtra("barcode_string", barcodeInfo.formatData)
+                    intent.putExtra("decode_time", barcodeInfo.decodeTime)
+                    intent.putExtra("aim_string", barcodeInfo.aim)
+                    sendBroadcast(intent)
+                }
+
+                DecodeMode.Simulate -> {
+                    val keyList = barcodeInfo.toKeyEvents()
+                    for (key in keyList) {
+                        simulateKey(key)
+                        delay(10)
+                        //Thread.sleep(10)
+                    }
+                    if (settings.attachKeycode != 0)
+                        simulateKey(KeyEventEx(settings.attachKeycode))
+                }
+
+                DecodeMode.Clipboard -> {
+                    val clipboardManager =
+                        getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboardManager.setPrimaryClip(
+                        ClipData.newPlainText(
+                            "BarcodeText",
+                            barcodeInfo.formatData
+                        )
+                    )
+                }
+            }
+            barcodeListener?.onBarcode(barcodeInfo) // for scan test
+        }
     }
 
     private fun playSound() {
@@ -467,152 +473,154 @@ class BarcodeService : Service() {
         }
     }
 
-    private fun BarcodeInfo.toKeyEvents(): MutableList<KeyEventEx> {
-        val keyList: MutableList<KeyEventEx> = ArrayList()
-        for (b in this.sourceData) {
-            when (b.toInt()) {
-                in 65..90 -> {
-                    keyList.add(KeyEventEx(b.toInt() - 36, true))
-                }
+    private fun BarcodeInfo.toKeyEvents(): List<KeyEventEx> {
+        val keyList = ArrayList<KeyEventEx>()
+        this.sourceData?.let {
+            for (byte in it) {
+                when (byte.toInt()) {
+                    in 65..90 -> {
+                        keyList.add(KeyEventEx(byte.toInt() - 36, true))
+                    }
 
-                in 97..122 -> {
-                    keyList.add(KeyEventEx(b.toInt() - 68))
-                }
+                    in 97..122 -> {
+                        keyList.add(KeyEventEx(byte.toInt() - 68))
+                    }
 
-                in 48..57 -> {
-                    keyList.add(KeyEventEx(b.toInt() - 41))
-                }
+                    in 48..57 -> {
+                        keyList.add(KeyEventEx(byte.toInt() - 41))
+                    }
 
-                32 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_SPACE))
-                }
+                    32 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_SPACE))
+                    }
 
-                33 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_1, true))
-                }
+                    33 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_1, true))
+                    }
 
-                34 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_APOSTROPHE, true))
-                }
+                    34 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_APOSTROPHE, true))
+                    }
 
-                35 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_POUND))
-                }
+                    35 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_POUND))
+                    }
 
-                36 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_4, true))
-                }
+                    36 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_4, true))
+                    }
 
-                37 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_5, true))
-                }
+                    37 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_5, true))
+                    }
 
-                38 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_7, true))
-                }
+                    38 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_7, true))
+                    }
 
-                39 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_APOSTROPHE))
-                }
+                    39 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_APOSTROPHE))
+                    }
 
-                40 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_9, true))
-                }
+                    40 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_9, true))
+                    }
 
-                41 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_0, true))
-                }
+                    41 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_0, true))
+                    }
 
-                42 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_STAR))
-                }
+                    42 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_STAR))
+                    }
 
-                43 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_PLUS))
-                }
+                    43 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_PLUS))
+                    }
 
-                44 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_COMMA))
-                }
+                    44 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_COMMA))
+                    }
 
-                45 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_MINUS))
-                }
+                    45 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_MINUS))
+                    }
 
-                46 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_PERIOD))
-                }
+                    46 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_PERIOD))
+                    }
 
-                47 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_SLASH))
-                }
+                    47 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_SLASH))
+                    }
 
-                58 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_SEMICOLON, true))
-                }
+                    58 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_SEMICOLON, true))
+                    }
 
-                59 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_SEMICOLON))
-                }
+                    59 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_SEMICOLON))
+                    }
 
-                60 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_COMMA, true))
-                }
+                    60 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_COMMA, true))
+                    }
 
-                61 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_EQUALS))
-                }
+                    61 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_EQUALS))
+                    }
 
-                62 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_PERIOD, true))
-                }
+                    62 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_PERIOD, true))
+                    }
 
-                63 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_SLASH, true))
-                }
+                    63 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_SLASH, true))
+                    }
 
-                64 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_AT))
-                }
+                    64 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_AT))
+                    }
 
-                91 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_LEFT_BRACKET))
-                }
+                    91 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_LEFT_BRACKET))
+                    }
 
-                92 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_BACKSLASH))
-                }
+                    92 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_BACKSLASH))
+                    }
 
-                93 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_RIGHT_BRACKET))
-                }
+                    93 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_RIGHT_BRACKET))
+                    }
 
-                94 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_6, true))
-                }
+                    94 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_6, true))
+                    }
 
-                95 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_MINUS, true))
-                }
+                    95 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_MINUS, true))
+                    }
 
-                96 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_GRAVE))
-                }
+                    96 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_GRAVE))
+                    }
 
-                123 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_LEFT_BRACKET, true))
-                }
+                    123 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_LEFT_BRACKET, true))
+                    }
 
-                124 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_BACKSLASH, true))
-                }
+                    124 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_BACKSLASH, true))
+                    }
 
-                125 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_RIGHT_BRACKET, true))
-                }
+                    125 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_RIGHT_BRACKET, true))
+                    }
 
-                126 -> {
-                    keyList.add(KeyEventEx(KeyEvent.KEYCODE_GRAVE, true))
+                    126 -> {
+                        keyList.add(KeyEventEx(KeyEvent.KEYCODE_GRAVE, true))
+                    }
                 }
             }
         }

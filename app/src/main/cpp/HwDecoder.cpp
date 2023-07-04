@@ -130,7 +130,6 @@ void HwDecoder::close() {
     sem_post(&decode_sem);
     pthread_join(thread_pid, nullptr);
     thread_pid = 0L;
-    ERR("close");
 }
 
 void *HwDecoder::decode_thread_routine(void *arg) {

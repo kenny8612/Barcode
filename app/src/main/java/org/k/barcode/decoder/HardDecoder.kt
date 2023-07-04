@@ -1,24 +1,27 @@
 package org.k.barcode.decoder
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
+import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
+import java.util.concurrent.LinkedBlockingQueue
+import kotlin.concurrent.thread
 
-class HardDecoder : BaseDecoder() {
+class HardDecoder : BarcodeDecoder {
     private var handler: Long = 0L
-    private var msgJob: Job? = null
 
+    init {
+        println("HardDecoder constructor >>>>>>>>>>>>>>>>>>")
+    }
     override fun init(codeDetails: List<CodeDetails>): Boolean {
         return nativeOpen()
     }
 
     override fun deInit() {
         nativeClose()
-        msgJob?.cancel()
     }
 
     override fun startDecode() {
@@ -29,46 +32,41 @@ class HardDecoder : BaseDecoder() {
         nativeCancelDecode()
     }
 
-    private fun postEventFromNative(what: Int, `object`: Any) {
-        if(msgJob?.isActive == true) return
+    override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
 
-        msgJob = flow {
-            emit(NativeMessage(what, `object` as ByteArray))
-        }.onEach {
-            when (it.what) {
-                MSG_DECODE_COMPLETE -> {
-                    barcodeResultCallback?.onSuccess(it.value)
-                }
+    private val queue = LinkedBlockingQueue<BarcodeInfo>()
 
-                MSG_DECODE_TIMEOUT -> {
-                    barcodeResultCallback?.onTimeout()
-                }
-
-                MSG_DECODE_CANCEL -> {
-                    barcodeResultCallback?.onCancel()
-                }
-
-                MSG_DECODE_ERROR -> {
+    private val flow = callbackFlow {
+        val thread = thread {
+            while (!Thread.interrupted()) {
+                try {
+                    trySend(queue.take())
+                } catch (e: Exception) {
+                    break
                 }
             }
-        }.launchIn(CoroutineScope(Dispatchers.IO))
-    }
-
-    data class NativeMessage(val what: Int, val value: ByteArray) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is NativeMessage) return false
-
-            if (what != other.what) return false
-            if (!value.contentEquals(other.value)) return false
-
-            return true
         }
+        awaitClose {
+            thread.interrupt()
+        }
+    }.flowOn(Dispatchers.IO)
 
-        override fun hashCode(): Int {
-            var result = what
-            result = 31 * result + value.contentHashCode()
-            return result
+    private fun postEventFromNative(what: Int, `object`: Any) {
+        when (what) {
+            MSG_DECODE_COMPLETE -> {
+                queue.put(BarcodeInfo(`object` as ByteArray))
+            }
+
+            MSG_DECODE_TIMEOUT -> {
+                queue.put(BarcodeInfo(decodeTime = -1))
+            }
+
+            MSG_DECODE_CANCEL -> {
+                queue.put(BarcodeInfo())
+            }
+
+            MSG_DECODE_ERROR -> {
+            }
         }
     }
 

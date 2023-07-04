@@ -4,5 +4,6 @@ enum class DecoderEvent {
     Opened,
     Closed,
     Error,
+    DecodeCancel,
     DecodeTimeout
 }

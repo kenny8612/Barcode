@@ -1,6 +1,5 @@
 package org.k.barcode.decoder
 
-import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Message
@@ -12,16 +11,7 @@ import kotlinx.coroutines.launch
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 
-interface BarcodeResultCallback {
-    fun onSuccess(data: ByteArray, aim: String? = null)
-    fun onTimeout()
-
-    fun onCancel()
-}
-
-class DecoderManager private constructor(context: Context) {
-    private val barcodeDecoder: BarcodeDecoder
-
+class DecoderManager private constructor(private val barcodeDecoder: BarcodeDecoder) {
     private var state = DecoderState.Closed
 
     private var decoderEventListeners: MutableList<DecoderEventListener> = ArrayList()
@@ -32,50 +22,42 @@ class DecoderManager private constructor(context: Context) {
     private val backgroundThread = HandlerThread("barcode_handler")
 
     private var decodeTimeoutJob: Job? = null
+    private var barcodeDataJob: Job? = null
 
     init {
-        val decoderType = initDecoderType()
-        barcodeDecoder = when (decoderType) {
-            DECODER_TYPE_NLS -> {
-                NlsDecoder(context)
-            }
-
-            else -> {
-                HardDecoder()
-            }
-        }
-        val barcodeResultCallback = object : BarcodeResultCallback {
-            override fun onSuccess(data: ByteArray, aim: String?) {
-                val barcodeInfo =
-                    BarcodeInfo(data, aim, System.currentTimeMillis() - startDecodeTime)
-                workHandler.obtainMessage(MSG_DECODE_RESULT, barcodeInfo).sendToTarget()
-            }
-
-            override fun onTimeout() {
-                workHandler.obtainMessage(MSG_DECODE_TIMEOUT).sendToTarget()
-            }
-
-            override fun onCancel() {
-                workHandler.obtainMessage(MSG_DECODE_CANCEL).sendToTarget()
-            }
-        }
-        barcodeDecoder.setBarcodeListener(barcodeResultCallback)
+        println("DecoderManager constructor >>>>>>>>>>>>>>>>>>")
         backgroundThread.start()
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun observeBarcodeDataFlow() {
+        if (barcodeDataJob?.isActive == true) return
+
+        barcodeDataJob = GlobalScope.launch {
+            barcodeDecoder.getBarcodeFlow().collect {
+                workHandler.obtainMessage(MSG_DECODE_RESULT, it).sendToTarget()
+            }
+        }
+    }
+
+    private fun cancelBarcodeDataFlow() {
+        barcodeDataJob?.cancel()
     }
 
     @OptIn(DelicateCoroutinesApi::class)
     private val workHandler = object : Handler(backgroundThread.looper) {
         override fun handleMessage(msg: Message) {
-            decodeTimeoutJob?.cancel()
             when (msg.what) {
                 MSG_OPEN -> {
                     if (state == DecoderState.Closed) {
-                        println("native_open barcode decoder")
+                        println("open barcode decoder")
                         val objectOfTypeAny = msg.obj
                         if (objectOfTypeAny is List<*>) {
                             val codeDetailsList = objectOfTypeAny.filterIsInstance<CodeDetails>()
-                            if (barcodeDecoder.init(codeDetailsList))
+                            if (barcodeDecoder.init(codeDetailsList)) {
+                                observeBarcodeDataFlow()
                                 state = DecoderState.Idle
+                            }
 
                             synchronized(decoderEventListeners) {
                                 for (listener in decoderEventListeners)
@@ -91,6 +73,7 @@ class DecoderManager private constructor(context: Context) {
                 MSG_CLOSE -> {
                     if (state != DecoderState.Closed) {
                         println("close barcode decoder")
+                        cancelBarcodeDataFlow()
                         barcodeDecoder.deInit()
                         state = DecoderState.Closed
                         synchronized(decoderEventListeners) {
@@ -108,40 +91,38 @@ class DecoderManager private constructor(context: Context) {
                         barcodeDecoder.startDecode()
                         decodeTimeoutJob = GlobalScope.launch {
                             delay(MAX_DECODE_TIMEOUT)
-                            sendEmptyMessage(MSG_DECODE_TIMEOUT)
+                            obtainMessage(
+                                MSG_DECODE_RESULT,
+                                BarcodeInfo(decodeTime = -1)
+                            ).sendToTarget()
                         }
                     }
                 }
 
                 MSG_CANCEL_DECODER -> {
-                    if (state == DecoderState.Decoding)
+                    if (state == DecoderState.Decoding) {
+                        decodeTimeoutJob?.cancel()
                         barcodeDecoder.cancelDecode()
+                    }
                 }
 
                 MSG_DECODE_RESULT -> {
                     if (state == DecoderState.Decoding) {
+                        decodeTimeoutJob?.cancel()
                         val barcodeInfo = msg.obj as BarcodeInfo
-                        synchronized(barcodeListeners) {
-                            for (listener in barcodeListeners)
-                                listener.onBarcode(barcodeInfo)
+                        if (barcodeInfo.sourceData != null) {
+                            barcodeInfo.decodeTime = System.currentTimeMillis() - startDecodeTime
+                            synchronized(barcodeListeners) {
+                                for (listener in barcodeListeners)
+                                    listener.onBarcode(barcodeInfo)
+                            }
+                        } else {
+                            val event = if (barcodeInfo.decodeTime == -1L) DecoderEvent.DecodeTimeout else DecoderEvent.DecodeCancel
+                            synchronized(decoderEventListeners) {
+                                for (listener in decoderEventListeners)
+                                    listener.onEvent(event)
+                            }
                         }
-                        state = DecoderState.Idle
-                    }
-                }
-
-                MSG_DECODE_TIMEOUT -> {
-                    if (state == DecoderState.Decoding) {
-                        synchronized(decoderEventListeners) {
-                            for (listener in decoderEventListeners)
-                                listener.onEvent(DecoderEvent.DecodeTimeout)
-                        }
-                        state = DecoderState.Idle
-                    }
-                }
-
-                MSG_DECODE_CANCEL -> {
-                    if (state == DecoderState.Decoding) {
-                        println("cancel decode")
                         state = DecoderState.Idle
                     }
                 }
@@ -163,10 +144,6 @@ class DecoderManager private constructor(context: Context) {
             }
             super.handleMessage(msg)
         }
-    }
-
-    private fun initDecoderType(): Int {
-        return DECODER_TYPE_HARD
     }
 
     fun addEventListener(decoderEventListener: DecoderEventListener) {
@@ -230,14 +207,11 @@ class DecoderManager private constructor(context: Context) {
         //    DecoderManager()
         //}
         @Synchronized
-        fun getInstance(context: Context): DecoderManager? {
-            if(instance == null)
-                instance = DecoderManager(context)
+        fun getInstance(barcodeDecoder: BarcodeDecoder): DecoderManager? {
+            if (instance == null)
+                instance = DecoderManager(barcodeDecoder)
             return instance
         }
-
-        const val DECODER_TYPE_HARD = 0
-        const val DECODER_TYPE_NLS = 1
 
         private const val MSG_OPEN = 0
         private const val MSG_CLOSE = 1
@@ -247,10 +221,8 @@ class DecoderManager private constructor(context: Context) {
         private const val MSG_DECODER_LIGHT = 5
 
         private const val MSG_DECODE_RESULT = 6
-        private const val MSG_DECODE_TIMEOUT = 7
-        private const val MSG_DECODE_CANCEL = 8
 
-        private const val MAX_DECODE_TIMEOUT = 5000L
+        private const val MAX_DECODE_TIMEOUT = 8000L
     }
 
     enum class DecoderState {

@@ -13,17 +13,44 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import org.k.barcode.decoder.BarcodeDecoder
 import org.k.barcode.decoder.DecoderManager
+import org.k.barcode.decoder.DecoderType
+import org.k.barcode.decoder.HardDecoder
+import org.k.barcode.decoder.NlsDecoder
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
+
+    @Provides
+    @Singleton
+    fun provideBarcodeType(
+        @ApplicationContext context: Context
+    ): DecoderType {
+        return DecoderType.Hard
+    }
+
+    @Provides
+    @Singleton
+    fun provideBarcodeDecoder(
+        @ApplicationContext context: Context,
+        type: DecoderType,
+    ): BarcodeDecoder =
+        when (type) {
+            DecoderType.Nls -> {
+                NlsDecoder(context)
+            }
+
+            else -> HardDecoder()
+        }
+
     @Provides
     @Singleton
     fun provideDecoderManager(
-        @ApplicationContext context: Context
-    ): DecoderManager = DecoderManager.getInstance(context)!!
+        barcodeDecoder: BarcodeDecoder
+    ): DecoderManager = DecoderManager.getInstance(barcodeDecoder)!!
 
     @Provides
     @Singleton
@@ -37,7 +64,6 @@ object DataModule {
         @ApplicationContext context: Context
     ): NotificationManager =
         context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager
-
 
     @Provides
     @Singleton

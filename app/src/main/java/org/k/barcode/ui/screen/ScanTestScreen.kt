@@ -68,9 +68,7 @@ fun ScanTestScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val barcodeList = remember { mutableStateListOf<String>() }
     var barcode by remember {
-        mutableStateOf(
-            BarcodeInfo(sourceData = "".toByteArray())
-        )
+        mutableStateOf(BarcodeInfo())
     }
     var scanTotal by remember { mutableStateOf(0L) }
     val settings = viewModel.settings.observeAsState(initial = initSettings)
@@ -94,7 +92,8 @@ fun ScanTestScreen(
                 snackBarHostState = snackBarHostState
             )
         }
-        DecodeResult(barcode, scanTotal)
+        if(scanTotal > 0)
+            DecodeResult(barcode, scanTotal)
         Scan(settings.value)
     }
 

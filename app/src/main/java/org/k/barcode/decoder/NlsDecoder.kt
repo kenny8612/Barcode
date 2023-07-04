@@ -4,11 +4,42 @@ import android.content.Context
 import com.dawn.decoderapijni.SoftEngine
 import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_SUCC
 import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_TIMEOUT
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 
-class NlsDecoder constructor(private val context: Context) : BaseDecoder(),
-    SoftEngine.ScanningCallback {
+class NlsDecoder constructor(private val context: Context) : BarcodeDecoder {
     private var softEngine: SoftEngine? = null
+
+    private val flow = callbackFlow {
+        val callback =
+            SoftEngine.ScanningCallback { eventCode, _, code, length ->
+                when (eventCode) {
+                    SCN_EVENT_DEC_SUCC -> {
+                        code?.let {
+                            val buffer = ByteArray(length - 128)
+                            System.arraycopy(it, 128, buffer, 0, length - 128)
+                            trySend(BarcodeInfo(buffer, String(it, 0, 3)))
+                        }
+                    }
+
+                    SCN_EVENT_DEC_TIMEOUT -> {
+                        trySend(BarcodeInfo(decodeTime = -1))
+                    }
+
+                    else -> {
+                        trySend(BarcodeInfo())
+                    }
+                }
+                0
+            }
+        SoftEngine.getInstance()?.setScanningCallback(callback)
+        awaitClose {
+
+        }
+    }
 
     override fun init(codeDetails: List<CodeDetails>): Boolean {
         softEngine = SoftEngine.getInstance()
@@ -22,7 +53,6 @@ class NlsDecoder constructor(private val context: Context) : BaseDecoder(),
         if (result == true) {
             softEngine?.Open()
             updateCode(codeDetails)
-            softEngine?.setScanningCallback(this)
             return true
         }
         return false
@@ -40,6 +70,8 @@ class NlsDecoder constructor(private val context: Context) : BaseDecoder(),
     override fun cancelDecode() {
         softEngine?.StopDecode()
     }
+
+    override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
 
     override fun supportLight(): Boolean = true
 
@@ -145,29 +177,5 @@ class NlsDecoder constructor(private val context: Context) : BaseDecoder(),
 
     override fun light(enable: Boolean) {
 
-    }
-
-    override fun onScanningCallback(
-        eventCode: Int,
-        type: Int,
-        code: ByteArray?,
-        length: Int
-    ): Int {
-        when (eventCode) {
-            SCN_EVENT_DEC_SUCC -> {
-                code?.let {
-                    val buffer = ByteArray(length - 128)
-                    System.arraycopy(it, 128, buffer, 0, length - 128)
-                    barcodeResultCallback?.onSuccess(buffer, String(it, 0, 3))
-                }
-            }
-            SCN_EVENT_DEC_TIMEOUT -> {
-                barcodeResultCallback?.onTimeout()
-            }
-            else -> {
-                barcodeResultCallback?.onCancel()
-            }
-        }
-        return 0
     }
 }
