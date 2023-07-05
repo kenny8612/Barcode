@@ -18,8 +18,8 @@ interface CodeDetailDDao {
     @Query("SELECT * FROM codeDetails WHERE type IS (:type)")
     fun getCodesFlow(type: Int): Flow<List<CodeDetails>>
 
-    @Query("SELECT * FROM codeDetails WHERE name IS (:name)")
-    suspend fun getCodeByName(name: String): CodeDetails
+    @Query("SELECT * FROM codeDetails WHERE uid IS (:uid)")
+    suspend fun getCodeDetail(uid: Int): CodeDetails
 
     @Update(entity = CodeDetails::class, onConflict = OnConflictStrategy.REPLACE)
     suspend fun update(vararg codeDetails: CodeDetails)

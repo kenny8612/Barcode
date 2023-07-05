@@ -12,15 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,9 +37,9 @@ import org.k.barcode.Constant.CODE_1D
 import org.k.barcode.Constant.CODE_2D
 import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
-import org.k.barcode.model.CodeDetails
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
+import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.SettingsViewModel
 
 fun CodeDetails.send() {
@@ -172,7 +168,7 @@ fun CodeItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable { navHostController.navigate(route = Screen.CodeDetail.codeName(codeDetails.name)) },
+            .clickable { navHostController.navigate(route = Screen.CodeDetail.codeUid(codeDetails.uid)) },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -192,8 +188,8 @@ fun CodeItem(
                     .wrapContentWidth(align = Alignment.End)
                     .padding(end = 4.dp),
                 checked = codeDetails.enable,
-                onCheckedChange = { enable ->
-                    codeDetails.copy().also { it.enable = enable }.send()
+                onCheckedChange = {
+                    codeDetails.copy(enable = it).send()
                 }
             )
         }

@@ -16,10 +16,10 @@
     <string name="decoder_suffix">Suffix</string>
     <string name="attach_keycode">Attach key</string>
     <string name="decoder_filter_characters">Filter characters</string>
-    <string name="decode_total_value">Total: %1$d</string>
-    <string name="barcode_info_value">Type: %1$s</string>
+    <string name="barcode_length_value">Length: %1$d</string>
+    <string name="barcode_aim_value">AIM: %1$s</string>
     <string name="decode_time_value">Time: %1$d ms</string>
-    <string name="clean">Clean</string>
+    <string name="clear">Clear</string>
     <string name="continuous_decode">Continuous decode</string>
     <string name="continuous_decode_interval">Continuous decode interval(ms)</string>
     <string name="codes_edit">Code edit</string>

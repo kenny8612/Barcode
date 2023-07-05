@@ -1,22 +1,24 @@
 package org.k.barcode.decoder
 
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.shareIn
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.CodeDetails
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 
-class HardDecoder : BarcodeDecoder {
+@OptIn(DelicateCoroutinesApi::class)
+class HardDecoder constructor(externalScope: CoroutineScope = GlobalScope) : BarcodeDecoder {
     private var handler: Long = 0L
+    private val queue = LinkedBlockingQueue<BarcodeInfo>()
+    private val startTime = 0L
 
-    init {
-        println("HardDecoder constructor >>>>>>>>>>>>>>>>>>")
-    }
-    override fun init(codeDetails: List<CodeDetails>): Boolean {
+    override fun init(): Boolean {
         return nativeOpen()
     }
 
@@ -33,8 +35,9 @@ class HardDecoder : BarcodeDecoder {
     }
 
     override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
-
-    private val queue = LinkedBlockingQueue<BarcodeInfo>()
+    override fun timeout(timeout: Int) {
+        nativeDecodeTimeout(timeout)
+    }
 
     private val flow = callbackFlow {
         val thread = thread {
@@ -49,16 +52,21 @@ class HardDecoder : BarcodeDecoder {
         awaitClose {
             thread.interrupt()
         }
-    }.flowOn(Dispatchers.IO)
+    }.shareIn(externalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
 
     private fun postEventFromNative(what: Int, `object`: Any) {
         when (what) {
             MSG_DECODE_COMPLETE -> {
-                queue.put(BarcodeInfo(`object` as ByteArray))
+                queue.put(
+                    BarcodeInfo(
+                        `object` as ByteArray,
+                        decodeTime = System.currentTimeMillis() - startTime
+                    )
+                )
             }
 
             MSG_DECODE_TIMEOUT -> {
-                queue.put(BarcodeInfo(decodeTime = -1))
+                queue.put(BarcodeInfo(decodeTime = System.currentTimeMillis() - startTime))
             }
 
             MSG_DECODE_CANCEL -> {
@@ -81,6 +89,7 @@ class HardDecoder : BarcodeDecoder {
     private external fun nativeClose()
     private external fun nativeStartDecode()
     private external fun nativeCancelDecode()
+    private external fun nativeDecodeTimeout(timeout: Int)
 
     init {
         System.loadLibrary("hw_decoder")

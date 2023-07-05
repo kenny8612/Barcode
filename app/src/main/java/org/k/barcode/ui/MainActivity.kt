@@ -36,8 +36,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.k.barcode.BarcodeService
 import org.k.barcode.R
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.ui.screen.Screen
 import org.k.barcode.decoder.DecoderManager
+import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.theme.BarcodeTheme
 import javax.inject.Inject
 
@@ -53,14 +53,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val viewModel: SettingsViewModel by viewModels()
+        val settingsViewModel: SettingsViewModel by viewModels()
+        val decoderViewModel: DecoderViewModel by viewModels()
 
         setContent {
             BarcodeTheme(darkTheme = false, dynamicColor = false) {
                 val navHostController = rememberNavController()
                 var settings by remember { mutableStateOf(false) }
                 val navBackStackEntry by navHostController.currentBackStackEntryAsState()
-                val snackbarHostState = remember { SnackbarHostState() }
+                val snackBarHostState = remember { SnackbarHostState() }
 
                 settings = navBackStackEntry?.destination?.route != Screen.ScanTest.route
 
@@ -103,17 +104,18 @@ class MainActivity : ComponentActivity() {
                     content = { paddingValues ->
                         SetupNavGraph(
                             navHostController = navHostController,
-                            snackBarHostState = snackbarHostState,
+                            snackBarHostState = snackBarHostState,
                             paddingValues = paddingValues,
-                            viewModel = viewModel,
+                            settingsViewModel = settingsViewModel,
+                            decoderViewModel = decoderViewModel,
                             databaseRepository = databaseRepository,
                             decoderManager = decoderManager
                         )
                     },
                     snackbarHost = {
-                        SnackbarHost(hostState = snackbarHostState) {
+                        SnackbarHost(hostState = snackBarHostState) {
                             Snackbar(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 75.dp),
+                                modifier = Modifier.padding(12.dp),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(text = it.visuals.message)
@@ -123,16 +125,23 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        if (Build.VERSION.SDK_INT >= 33) {
-            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            startForegroundService(Intent(this, BarcodeService::class.java))
-        }
+        val permissionList = mutableListOf<String>()
+        permissionList.add(Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT >= 33)
+            permissionList.add(Manifest.permission.POST_NOTIFICATIONS)
+
+        requestPermissionLauncher.launch(permissionList.toTypedArray())
     }
 
     private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted)
-                startForegroundService(Intent(this, BarcodeService::class.java))
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (result[Manifest.permission.CAMERA] == true) {
+                if (Build.VERSION.SDK_INT >= 33) {
+                    if (result[Manifest.permission.POST_NOTIFICATIONS] == true)
+                        startForegroundService(Intent(this, BarcodeService::class.java))
+                } else {
+                    startForegroundService(Intent(this, BarcodeService::class.java))
+                }
+            }
         }
 }

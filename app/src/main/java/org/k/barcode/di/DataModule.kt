@@ -1,5 +1,6 @@
 package org.k.barcode.di
 
+import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
@@ -29,16 +30,16 @@ object DataModule {
     fun provideBarcodeType(
         @ApplicationContext context: Context
     ): DecoderType {
-        return DecoderType.Hard
+        return DecoderType.Nls
     }
 
     @Provides
     @Singleton
     fun provideBarcodeDecoder(
         @ApplicationContext context: Context,
-        type: DecoderType,
+        decoderType: DecoderType
     ): BarcodeDecoder =
-        when (type) {
+        when (decoderType) {
             DecoderType.Nls -> {
                 NlsDecoder(context)
             }
@@ -78,4 +79,11 @@ object DataModule {
             @Suppress("DEPRECATION")
             context.getSystemService(Service.VIBRATOR_SERVICE) as Vibrator
         }
+
+    @Provides
+    @Singleton
+    fun provideKeyguardManager(
+        @ApplicationContext context: Context
+    ): KeyguardManager =
+        context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
 }

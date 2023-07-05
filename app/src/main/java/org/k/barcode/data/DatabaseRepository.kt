@@ -10,5 +10,5 @@ class DatabaseRepository @Inject constructor(
     fun getSettingsFlow() = settingsDao.getFlow()
     fun getCodesFlow(type:Int) = codeDetailDDao.getCodesFlow(type)
     suspend fun getCodes() = codeDetailDDao.getCodes()
-    suspend fun getCodeDetailByName(name: String) = codeDetailDDao.getCodeByName(name)
+    suspend fun getCodeDetail(uid: Int) = codeDetailDDao.getCodeDetail(uid)
 }

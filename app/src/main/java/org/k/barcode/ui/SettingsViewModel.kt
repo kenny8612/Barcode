@@ -15,8 +15,9 @@ import org.k.barcode.model.CodeDetails
 import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(databaseRepository: DatabaseRepository) :
-    ViewModel() {
+class SettingsViewModel @Inject constructor(
+    databaseRepository: DatabaseRepository
+) : ViewModel() {
     private val _settings = MutableLiveData<Settings>()
     val settings: LiveData<Settings> = _settings
 

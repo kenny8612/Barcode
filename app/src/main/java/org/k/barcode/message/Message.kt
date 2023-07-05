@@ -1,8 +1,9 @@
 package org.k.barcode.message
 
 enum class Message {
-    SettingsUI,
     UpdateSettings,
     UpdateCode,
-    RestoreSettings
+    RestoreSettings,
+    StartDecode,
+    CloseDecoder,
 }

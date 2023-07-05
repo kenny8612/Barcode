@@ -59,11 +59,17 @@ static void native_cancel_decode(JNIEnv *env, jobject thiz) {
     pContext->getDecoder()->stop_decode();
 }
 
+static void native_decode_timeout(JNIEnv *env, jobject thiz, jint timeout) {
+    HwDecoderContext *pContext = getInstance(env, thiz);
+    pContext->getDecoder()->decode_timeout(timeout);
+}
+
 static const JNINativeMethod method_table[] = {
-        {"nativeOpen", "()Z", reinterpret_cast<void *>(native_open)},
-        {"nativeClose", "()V", reinterpret_cast<void *>(native_close)},
-        {"nativeStartDecode", "()V", reinterpret_cast<void *>(native_start_decode)},
-        {"nativeCancelDecode", "()V", reinterpret_cast<void *>(native_cancel_decode)}
+        {"nativeOpen",          "()Z",  reinterpret_cast<void *>(native_open)},
+        {"nativeClose",         "()V",  reinterpret_cast<void *>(native_close)},
+        {"nativeStartDecode",   "()V",  reinterpret_cast<void *>(native_start_decode)},
+        {"nativeCancelDecode",  "()V",  reinterpret_cast<void *>(native_cancel_decode)},
+        {"nativeDecodeTimeout", "(I)V", reinterpret_cast<void *>(native_decode_timeout)}
 };
 
 void registerModule(JNIEnv *env) {
@@ -99,7 +105,7 @@ bool HwDecoder::open() {
     if (!threadExit)
         return true;
 
-    result = serialPort->open("/dev/ttyS0", 9600);
+    result = serialPort->open("/dev/ttyWCH0", 9600);
     if (!result)
         return false;
 
@@ -217,7 +223,7 @@ void HwDecoder::stop_decode() {
     pthread_mutex_unlock(&decodeLock);
 }
 
-void HwDecoder::decoding_timeout(sigval_t sig) {
+void HwDecoder::decoding_timeout_route(sigval_t sig) {
     auto *decoder = (HwDecoder *) sig.sival_ptr;
     decoder->decodingTimeout = true;
 }
@@ -229,7 +235,7 @@ void HwDecoder::start_timer(long timeout_ms) {
     evp.sigev_value.sival_int = 100;
     evp.sigev_value.sival_ptr = this;
     evp.sigev_notify = SIGEV_THREAD;
-    evp.sigev_notify_function = decoding_timeout;
+    evp.sigev_notify_function = decoding_timeout_route;
     timer_create(CLOCK_MONOTONIC, &evp, &timer);
 
     struct itimerspec it{};
@@ -245,6 +251,10 @@ void HwDecoder::stop_timer() {
         timer_delete(timer);
         timer = nullptr;
     }
+}
+
+void HwDecoder::decode_timeout(uint16_t timeout) {
+    decodeTimeout = timeout;
 }
 
 HwDecoderContext::HwDecoderContext() {

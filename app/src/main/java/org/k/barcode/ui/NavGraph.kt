@@ -10,8 +10,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import kotlinx.coroutines.runBlocking
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.ui.screen.Screen
 import org.k.barcode.decoder.DecoderManager
+import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.screen.ScanTestScreen
 import org.k.barcode.ui.screen.AppSettingsScreen
 import org.k.barcode.ui.screen.CodeDetailScreen
@@ -22,35 +22,30 @@ fun SetupNavGraph(
     navHostController: NavHostController,
     snackBarHostState: SnackbarHostState,
     paddingValues: PaddingValues,
-    viewModel: SettingsViewModel,
+    settingsViewModel: SettingsViewModel,
+    decoderViewModel: DecoderViewModel,
     databaseRepository: DatabaseRepository,
     decoderManager: DecoderManager
 ) {
-
     NavHost(
         navController = navHostController,
         startDestination = Screen.ScanTest.route
     ) {
         composable(route = Screen.ScanTest.route) {
-            runBlocking { databaseRepository.getSettings() }.also {
-                ScanTestScreen(
-                    paddingValues = paddingValues,
-                    snackBarHostState = snackBarHostState,
-                    viewModel = viewModel,
-                    initSettings = it
-                )
-            }
+            ScanTestScreen(
+                paddingValues = paddingValues,
+                snackBarHostState = snackBarHostState,
+                settingsViewModel = settingsViewModel,
+                decoderViewModel = decoderViewModel
+            )
         }
         composable(route = Screen.AppSettings.route) {
-            runBlocking { databaseRepository.getSettings() }.also {
-                AppSettingsScreen(
-                    paddingValues = paddingValues,
-                    navHostController = navHostController,
-                    viewModel = viewModel,
-                    decoderManager = decoderManager,
-                    initSettings = it
-                )
-            }
+            AppSettingsScreen(
+                paddingValues = paddingValues,
+                navHostController = navHostController,
+                viewModel = settingsViewModel,
+                decoderManager = decoderManager
+            )
         }
         composable(
             route = Screen.CodeSettings.route,
@@ -61,18 +56,18 @@ fun SetupNavGraph(
             CodeSettingsScreen(
                 paddingValues = paddingValues,
                 navHostController = navHostController,
-                viewModel = viewModel,
+                viewModel = settingsViewModel,
                 currentIndex = it.arguments?.getInt("index")!!
             )
         }
         composable(
             route = Screen.CodeDetail.route,
-            arguments = listOf(navArgument("name") {
-                type = NavType.StringType
+            arguments = listOf(navArgument("uid") {
+                type = NavType.IntType
             })
         ) {
             runBlocking {
-                databaseRepository.getCodeDetailByName(it.arguments?.getString("name")!!)
+                databaseRepository.getCodeDetail(it.arguments?.getInt("uid")!!)
             }.also {
                 CodeDetailScreen(
                     paddingValues = paddingValues,

@@ -7,4 +7,6 @@ object Constant {
 
     const val BARCODE_CHANNEL_ID = "BARCODE_CHANNEL_ID"
     const val NOTIFICATION_ID = 1
+
+    const val DEFAULT_DECODE_TIMEOUT = 5000
 }

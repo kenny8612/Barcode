@@ -71,11 +71,10 @@ fun AppSettingsScreen(
     paddingValues: PaddingValues,
     navHostController: NavHostController,
     viewModel: SettingsViewModel,
-    decoderManager: DecoderManager,
-    initSettings: Settings
+    decoderManager: DecoderManager
 ) {
     val context = LocalContext.current
-    val settings by viewModel.settings.observeAsState(initSettings)
+    val settings by viewModel.settings.observeAsState(initial = Settings())
 
     Column(
         modifier = Modifier
@@ -160,8 +159,12 @@ fun AppSettingsScreen(
         ) {
             settings.copy(continuousDecodeInterval = it).send()
         }
-        if (decoderManager.supportCode())
-            CodesEditView(navHostController = navHostController)
+        if (decoderManager.supportCode()) {
+            CodesEditView(
+                navHostController = navHostController,
+                enable = settings.decoderEnable
+            )
+        }
         RestoreSettings()
     }
 }
@@ -178,10 +181,7 @@ fun RestoreSettings() {
         border = BorderStroke(width = 1.dp, color = Color.LightGray),
         onClick = { show = true }
     ) {
-        Text(
-            text = stringResource(id = R.string.restore_settings),
-            color = Color.Black
-        )
+        Text(text = stringResource(id = R.string.restore_settings))
     }
 
     if (show) {
@@ -216,7 +216,8 @@ fun RestoreSettings() {
 
 @Composable
 fun CodesEditView(
-    navHostController: NavHostController
+    navHostController: NavHostController,
+    enable: Boolean
 ) {
     TextButton(
         modifier = Modifier
@@ -224,13 +225,12 @@ fun CodesEditView(
             .height(62.dp)
             .padding(top = 8.dp, bottom = 4.dp),
         border = BorderStroke(width = 1.dp, color = Color.LightGray),
-        onClick = { navHostController.navigate(Screen.CodeSettings.setIndex(0)) }
+        onClick = { navHostController.navigate(Screen.CodeSettings.setIndex(0)) },
+        enabled = enable
     ) {
-        Text(
-            text = stringResource(id = R.string.codes_edit),
-            color = Color.Black
-        )
+        Text(text = stringResource(id = R.string.codes_edit))
     }
+
 }
 
 @Composable
@@ -374,7 +374,7 @@ fun EditViewText(
     EditView(label, value, KeyboardType.Text, onValueChange = {
         value = it
     }, onDone = {
-        if (value != newValue) onDone(value)
+        if (it != newValue) onDone(it)
     })
 }
 
@@ -399,9 +399,8 @@ fun EditViewNumber(
             symbol.isDigit()
         }
     }, onDone = {
-        value = if (it.isNotEmpty().and(it.toInt() in min..max)) it
-        else newValue.toString()
-        onDone(value.toInt())
+        if (it.isNotEmpty() && it.toInt() in min..max && it.toInt() != newValue)
+            onDone(value.toInt())
     })
 }
 

@@ -1,10 +1,5 @@
 package org.k.barcode.ui.screen
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
-import android.os.IBinder
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,84 +43,69 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.launch
-import org.k.barcode.BarcodeService
+import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
-import org.k.barcode.decoder.BarcodeListener
+import org.k.barcode.decoder.DecoderEvent
+import org.k.barcode.message.Message
+import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.Settings
+import org.k.barcode.ui.DecoderViewModel
 import org.k.barcode.ui.SettingsViewModel
-
-var serviceBind: BarcodeService.BarcodeServiceBind? = null
+import org.k.barcode.utils.BarcodeInfoUtils.transformData
 
 @Composable
 fun ScanTestScreen(
     paddingValues: PaddingValues,
     snackBarHostState: SnackbarHostState,
-    viewModel: SettingsViewModel,
-    initSettings: Settings
+    settingsViewModel: SettingsViewModel,
+    decoderViewModel: DecoderViewModel
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val clipboardManager = LocalClipboardManager.current
     val barcodeList = remember { mutableStateListOf<String>() }
-    var barcode by remember {
-        mutableStateOf(BarcodeInfo())
-    }
-    var scanTotal by remember { mutableStateOf(0L) }
-    val settings = viewModel.settings.observeAsState(initial = initSettings)
+    val decoderEvent by decoderViewModel.decoderEvent.observeAsState(initial = DecoderEvent.Closed)
+    val settings by settingsViewModel.settings.observeAsState(initial = Settings())
+    var barcodeInfo by remember { mutableStateOf(BarcodeInfo()) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
     ) {
-        CleanBarcode(barcodeList)
-        Card(
+        Clear {
+            barcodeList.clear()
+        }
+        BarcodeList(
             modifier = Modifier
                 .padding(4.dp)
                 .fillMaxWidth()
                 .weight(1f),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(2.dp)
+            barcodeList = barcodeList
         ) {
-            BarcodeList(
-                barcodeList = barcodeList,
-                snackBarHostState = snackBarHostState
-            )
+            clipboardManager.setText(AnnotatedString(it))
+            scope.launch {
+                snackBarHostState.showSnackbar(context.getString(R.string.copy_to_clipboard))
+            }
         }
-        if(scanTotal > 0)
-            DecodeResult(barcode, scanTotal)
-        Scan(settings.value)
+        DecodeResult(barcodeInfo)
+        Scan(decoderEvent)
     }
 
     DisposableEffect(Unit) {
-        val barcodeInfoListener = object : BarcodeListener {
-            override fun onBarcode(barcodeInfo: BarcodeInfo) {
-                barcodeInfo.formatData?.let {
-                    barcodeList.add(it)
-                    barcode = barcodeInfo
-                    scanTotal++
-                }
-            }
-        }
-
-        val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                serviceBind = service as BarcodeService.BarcodeServiceBind
-                serviceBind?.addBarcodeInfoListener(barcodeInfoListener)
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-            }
-        }
-
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
-                context.unbindService(connection)
+                decoderViewModel.barcode.removeObservers(lifecycleOwner)
             } else if (event == Lifecycle.Event.ON_RESUME) {
-                context.bindService(
-                    Intent(context, BarcodeService::class.java),
-                    connection, Context.BIND_AUTO_CREATE
-                )
+                decoderViewModel.barcode.observe(lifecycleOwner) {
+                    val formatData = it.transformData(settings)
+                    if (formatData != null) {
+                        barcodeList.add(formatData)
+                        barcodeInfo = it
+                    }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -136,19 +116,35 @@ fun ScanTestScreen(
 }
 
 @Composable
+fun Clear(onClick: () -> Unit) {
+    Button(
+        onClick = {
+            onClick()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(70.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = stringResource(id = R.string.clear),
+            fontSize = 18.sp
+        )
+    }
+}
+
+@Composable
 fun BarcodeList(
+    modifier: Modifier,
     barcodeList: SnapshotStateList<String>,
-    snackBarHostState: SnackbarHostState
+    onClick: (String) -> Unit
 ) {
     val scrollerLazyStata = rememberLazyListState()
-    val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
     val insert by remember {
         derivedStateOf {
             scrollerLazyStata.layoutInfo.totalItemsCount == barcodeList.size && barcodeList.isNotEmpty()
         }
     }
-    val scope = rememberCoroutineScope()
 
     if (insert) {
         LaunchedEffect(Unit) {
@@ -156,43 +152,33 @@ fun BarcodeList(
         }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        state = scrollerLazyStata,
-        contentPadding = PaddingValues(4.dp)
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        items(barcodeList) {
-            Text(
-                text = it,
-                modifier = Modifier.clickable {
-                    clipboardManager.setText(AnnotatedString(it))
-                    scope.launch {
-                        snackBarHostState.showSnackbar(context.getString(R.string.copy_to_clipboard))
-                    }
+        if (barcodeList.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                state = scrollerLazyStata,
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                items(barcodeList) {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onClick(it)
+                            }, text = it
+                    )
                 }
-            )
+            }
         }
     }
 }
 
 @Composable
-fun CleanBarcode(barcodeList: SnapshotStateList<String>) {
-    Button(
-        onClick = {
-            if (barcodeList.isNotEmpty())
-                barcodeList.clear()
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(70.dp)
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-    ) {
-        Text(text = stringResource(id = R.string.clean), fontSize = 18.sp)
-    }
-}
-
-@Composable
-fun DecodeResult(barcodeInfo: BarcodeInfo, scanTotal: Long) {
+fun DecodeResult(barcodeInfo: BarcodeInfo) {
     Card(
         modifier = Modifier
             .padding(4.dp)
@@ -206,13 +192,11 @@ fun DecodeResult(barcodeInfo: BarcodeInfo, scanTotal: Long) {
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            barcodeInfo.aim?.let {
-                Text(
-                    modifier = Modifier,
-                    text = stringResource(id = R.string.barcode_info_value, it),
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            Text(
+                modifier = Modifier,
+                text = stringResource(id = R.string.barcode_aim_value, barcodeInfo.aim ?: "N/A"),
+                fontWeight = FontWeight.Medium
+            )
             Text(
                 modifier = Modifier,
                 text = stringResource(id = R.string.decode_time_value, barcodeInfo.decodeTime),
@@ -220,7 +204,10 @@ fun DecodeResult(barcodeInfo: BarcodeInfo, scanTotal: Long) {
             )
             Text(
                 modifier = Modifier,
-                text = stringResource(R.string.decode_total_value, scanTotal),
+                text = stringResource(
+                    R.string.barcode_length_value,
+                    barcodeInfo.sourceData?.size ?: 0
+                ),
                 fontWeight = FontWeight.Medium
             )
         }
@@ -228,16 +215,16 @@ fun DecodeResult(barcodeInfo: BarcodeInfo, scanTotal: Long) {
 }
 
 @Composable
-fun Scan(settings: Settings) {
+fun Scan(decoderEvent: DecoderEvent) {
     Button(
         onClick = {
-            serviceBind?.startDecode()
+            EventBus.getDefault().post(MessageEvent(Message.StartDecode))
         },
         modifier = Modifier
             .fillMaxWidth()
             .height(70.dp)
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        enabled = settings.decoderEnable
+        enabled = decoderEvent != DecoderEvent.Error && decoderEvent != DecoderEvent.Closed
     ) {
         Text(
             text = stringResource(id = R.string.scan),

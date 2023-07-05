@@ -7,8 +7,8 @@ sealed class Screen(val route: String) {
         fun setIndex(index: Int): String =
             this.route.replace(oldValue = "{index}", newValue = index.toString())
     }
-    object CodeDetail : Screen("code_detail/{name}") {
-        fun codeName(name: String): String =
-            this.route.replace(oldValue = "{name}", newValue = name)
+    object CodeDetail : Screen("code_detail/{uid}") {
+        fun codeUid(uid: Int): String =
+            this.route.replace(oldValue = "{uid}", newValue = uid.toString())
     }
 }

@@ -42,9 +42,9 @@ private:
 
     void stop_timer();
 
-    static void decoding_timeout(sigval_t sig);
-
     int get_decode_result();
+
+    static void decoding_timeout_route(sigval_t sig);
 
 public:
     HwDecoder(DecoderListener *listener);
@@ -58,6 +58,8 @@ public:
     int start_decode();
 
     void stop_decode();
+
+    void decode_timeout(uint16_t timeout);
 };
 
 class HwDecoderContext : public DecoderListener {
