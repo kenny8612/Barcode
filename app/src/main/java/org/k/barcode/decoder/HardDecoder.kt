@@ -1,6 +1,5 @@
 package org.k.barcode.decoder
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
@@ -12,33 +11,41 @@ import org.k.barcode.model.BarcodeInfo
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 
-@OptIn(DelicateCoroutinesApi::class)
-class HardDecoder constructor(externalScope: CoroutineScope = GlobalScope) : BarcodeDecoder {
+class HardDecoder : BarcodeDecoder {
     private var handler: Long = 0L
     private val queue = LinkedBlockingQueue<BarcodeInfo>()
-    private val startTime = 0L
+    private var startTime = 0L
 
     override fun init(): Boolean {
-        return nativeOpen()
+        return true//nativeOpen()
     }
 
     override fun deInit() {
-        nativeClose()
+        //nativeClose()
     }
 
     override fun startDecode() {
-        nativeStartDecode()
+        startTime = System.currentTimeMillis()
+        //nativeStartDecode()
+        queue.put(
+            BarcodeInfo(
+                "hhtpakdfjdsofiudsofi".toByteArray(),
+                "QR",
+                decodeTime = System.currentTimeMillis() - startTime
+            )
+        )
     }
 
     override fun cancelDecode() {
-        nativeCancelDecode()
+        //nativeCancelDecode()
     }
 
     override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
     override fun timeout(timeout: Int) {
-        nativeDecodeTimeout(timeout)
+        //nativeDecodeTimeout(timeout)
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     private val flow = callbackFlow {
         val thread = thread {
             while (!Thread.interrupted()) {
@@ -52,7 +59,7 @@ class HardDecoder constructor(externalScope: CoroutineScope = GlobalScope) : Bar
         awaitClose {
             thread.interrupt()
         }
-    }.shareIn(externalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
+    }.shareIn(GlobalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
 
     private fun postEventFromNative(what: Int, `object`: Any) {
         when (what) {
@@ -92,6 +99,6 @@ class HardDecoder constructor(externalScope: CoroutineScope = GlobalScope) : Bar
     private external fun nativeDecodeTimeout(timeout: Int)
 
     init {
-        System.loadLibrary("hw_decoder")
+        //System.loadLibrary("hw_decoder")
     }
 }

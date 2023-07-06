@@ -96,8 +96,10 @@ fun ScanTestScreen(
 
     DisposableEffect(Unit) {
         val observer = LifecycleEventObserver { _, event ->
+            println("BarcodeDecoder >>>>>>>>>>>>>>> $event")
             if (event == Lifecycle.Event.ON_PAUSE) {
                 decoderViewModel.barcode.removeObservers(lifecycleOwner)
+                decoderViewModel.reset()
             } else if (event == Lifecycle.Event.ON_RESUME) {
                 decoderViewModel.barcode.observe(lifecycleOwner) {
                     val formatData = it.transformData(settings)

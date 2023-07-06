@@ -8,8 +8,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
@@ -22,10 +26,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,82 +55,24 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var decoderManager: DecoderManager
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val settingsViewModel: SettingsViewModel by viewModels()
+
         val decoderViewModel: DecoderViewModel by viewModels()
 
         setContent {
             BarcodeTheme(darkTheme = false, dynamicColor = false) {
-                val navHostController = rememberNavController()
-                var settings by remember { mutableStateOf(false) }
-                val navBackStackEntry by navHostController.currentBackStackEntryAsState()
-                val snackBarHostState = remember { SnackbarHostState() }
-
-                settings = navBackStackEntry?.destination?.route != Screen.ScanTest.route
-
-                Scaffold(
-                    topBar = {
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = stringResource(id = if (!settings) R.string.scan_test else R.string.scan_settings),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            },
-                            actions = {
-                                if (!settings) {
-                                    IconButton(onClick = {
-                                        navHostController.navigate(Screen.AppSettings.route)
-                                        settings = true
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Settings,
-                                            contentDescription = null
-                                        )
-                                    }
-                                }
-                            },
-                            navigationIcon = {
-                                if (settings) {
-                                    IconButton(onClick = {
-                                        navHostController.popBackStack()
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.ArrowBack,
-                                            contentDescription = null
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    },
-                    content = { paddingValues ->
-                        SetupNavGraph(
-                            navHostController = navHostController,
-                            snackBarHostState = snackBarHostState,
-                            paddingValues = paddingValues,
-                            settingsViewModel = settingsViewModel,
-                            decoderViewModel = decoderViewModel,
-                            databaseRepository = databaseRepository,
-                            decoderManager = decoderManager
-                        )
-                    },
-                    snackbarHost = {
-                        SnackbarHost(hostState = snackBarHostState) {
-                            Snackbar(
-                                modifier = Modifier.padding(12.dp),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(text = it.visuals.message)
-                            }
-                        }
-                    }
+                MainUI(
+                    settingsViewModel = settingsViewModel,
+                    decoderViewModel = decoderViewModel,
+                    databaseRepository = databaseRepository,
+                    decoderManager = decoderManager
                 )
             }
         }
+
         val permissionList = mutableListOf<String>()
         permissionList.add(Manifest.permission.CAMERA)
         if (Build.VERSION.SDK_INT >= 33)
@@ -144,4 +92,96 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainUI(
+    settingsViewModel: SettingsViewModel,
+    decoderViewModel: DecoderViewModel,
+    databaseRepository: DatabaseRepository,
+    decoderManager: DecoderManager
+) {
+    val navHostController = rememberNavController()
+    var settings by remember { mutableStateOf(false) }
+    val navBackStackEntry by navHostController.currentBackStackEntryAsState()
+    val snackBarHostState = remember { SnackbarHostState() }
+
+    settings = navBackStackEntry?.destination?.route != Screen.ScanTest.route
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = if (!settings) R.string.scan_test else R.string.scan_settings),
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+                actions = {
+                    if (!settings) {
+                        IconButton(onClick = {
+                            navHostController.navigate(Screen.AppSettings.route) {
+                                //popUpTo(Screen.ScanTest.route){
+                                //    inclusive = true
+                                //    saveState = true
+                                //}
+                            }
+                            settings = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                },
+                navigationIcon = {
+                    if (settings) {
+                        IconButton(onClick = {
+                            navHostController.popBackStack()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }
+            )
+        },
+        content = { paddingValues ->
+            SetupNavGraph(
+                navHostController = navHostController,
+                snackBarHostState = snackBarHostState,
+                paddingValues = paddingValues,
+                settingsViewModel = settingsViewModel,
+                decoderViewModel = decoderViewModel,
+                databaseRepository = databaseRepository,
+                decoderManager = decoderManager
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackBarHostState) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Snackbar(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .height(50.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(text = it.visuals.message)
+                        }
+                    }
+                }
+            }
+        }
+    )
 }

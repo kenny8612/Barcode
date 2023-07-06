@@ -4,7 +4,6 @@ import android.content.Context
 import com.dawn.decoderapijni.SoftEngine
 import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_SUCC
 import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_TIMEOUT
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
@@ -15,12 +14,12 @@ import kotlinx.coroutines.flow.shareIn
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 
-@OptIn(DelicateCoroutinesApi::class)
-class NlsDecoder constructor(private val context: Context, externalScope: CoroutineScope = GlobalScope) :
+class NlsDecoder constructor(private val context: Context) :
     BarcodeDecoder {
     private var softEngine: SoftEngine? = null
     private var startTime = 0L
 
+    @OptIn(DelicateCoroutinesApi::class)
     private val flow = callbackFlow {
         val callback =
             SoftEngine.ScanningCallback { eventCode, _, param2, length ->
@@ -56,7 +55,7 @@ class NlsDecoder constructor(private val context: Context, externalScope: Corout
         awaitClose {
 
         }
-    }.shareIn(externalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
+    }.shareIn(GlobalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
 
     init {
         softEngine = SoftEngine.getInstance()

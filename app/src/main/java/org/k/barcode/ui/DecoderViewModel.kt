@@ -7,14 +7,16 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.k.barcode.data.DecoderRepository
 import org.k.barcode.decoder.DecoderEvent
 import org.k.barcode.model.BarcodeInfo
 import javax.inject.Inject
 
 @HiltViewModel
-class DecoderViewModel @Inject constructor(decoderRepository: DecoderRepository) :
-    ViewModel() {
+class DecoderViewModel @Inject constructor(
+    decoderRepository: DecoderRepository,
+) : ViewModel() {
     private val _decoderEvent = MutableLiveData<DecoderEvent>()
     val decoderEvent: LiveData<DecoderEvent> = _decoderEvent
 
@@ -22,11 +24,22 @@ class DecoderViewModel @Inject constructor(decoderRepository: DecoderRepository)
     val barcode: LiveData<BarcodeInfo> = _barcode
 
     init {
-        decoderRepository.getEvent().onEach {
-            _decoderEvent.value = it
-        }.launchIn(viewModelScope)
-        decoderRepository.getBarcode().onEach {
-            _barcode.value = it
-        }.launchIn(viewModelScope)
+        viewModelScope.launch {
+            decoderRepository.getEvent().onEach {
+                _decoderEvent.value = it
+            }.launchIn(viewModelScope)
+            decoderRepository.getBarcode().onEach {
+                _barcode.value = it
+            }.launchIn(viewModelScope)
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        reset()
+    }
+
+    fun reset() {
+        _barcode.value = BarcodeInfo()
     }
 }

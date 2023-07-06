@@ -30,7 +30,7 @@ object DataModule {
     fun provideBarcodeType(
         @ApplicationContext context: Context
     ): DecoderType {
-        return DecoderType.Nls
+        return DecoderType.Hard
     }
 
     @Provides
