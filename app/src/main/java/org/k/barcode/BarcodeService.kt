@@ -15,6 +15,7 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
@@ -87,6 +88,9 @@ class BarcodeService : Service() {
 
     @Inject
     lateinit var keyguardManager: KeyguardManager
+
+    @Inject
+    lateinit var powerManager: PowerManager
 
     @Inject
     lateinit var vibrator: Vibrator
@@ -382,6 +386,8 @@ class BarcodeService : Service() {
 
     private fun isScreenLocked() = keyguardManager.isKeyguardLocked
 
+    private fun isScreenOn() = powerManager.isInteractive
+
     private fun enterLowPowerConsumption() {
         if (lowPowerConsumptionWorkUUID == null) {
             val request = OneTimeWorkRequest.Builder(LowPowerConsumptionWork::class.java)
@@ -409,7 +415,7 @@ class BarcodeService : Service() {
     }
 
     private fun startDecode() {
-        if (!settings.decoderEnable) return
+        if (!settings.decoderEnable || !isScreenOn() || isScreenLocked()) return
 
         if (settings.continuousDecode) {
             continuousDecodeState = if (continuousDecodeState == ContinuousDecodeState.Stop) {

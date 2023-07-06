@@ -1,7 +1,6 @@
 package org.k.barcode.ui
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -20,10 +19,10 @@ import org.k.barcode.ui.screen.CodeSettingsScreen
 @Composable
 fun SetupNavGraph(
     navHostController: NavHostController,
-    snackBarHostState: SnackbarHostState,
     paddingValues: PaddingValues,
     settingsViewModel: SettingsViewModel,
     decoderViewModel: DecoderViewModel,
+    barcodeContentViewModel: BarcodeContentViewModel,
     databaseRepository: DatabaseRepository,
     decoderManager: DecoderManager
 ) {
@@ -34,9 +33,9 @@ fun SetupNavGraph(
         composable(route = Screen.ScanTest.route) {
             ScanTestScreen(
                 paddingValues = paddingValues,
-                snackBarHostState = snackBarHostState,
                 settingsViewModel = settingsViewModel,
-                decoderViewModel = decoderViewModel
+                decoderViewModel = decoderViewModel,
+                barcodeContentViewModel = barcodeContentViewModel
             )
         }
         composable(route = Screen.AppSettings.route) {
@@ -49,9 +48,11 @@ fun SetupNavGraph(
         }
         composable(
             route = Screen.CodeSettings.route,
-            arguments = listOf(navArgument("index") {
-                type = NavType.IntType
-            })
+            arguments = listOf(
+                navArgument("index") {
+                    type = NavType.IntType
+                }
+            )
         ) {
             CodeSettingsScreen(
                 paddingValues = paddingValues,

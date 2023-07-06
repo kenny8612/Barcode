@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import android.os.PowerManager
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.preference.PreferenceManager
@@ -24,13 +25,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
-
     @Provides
     @Singleton
     fun provideBarcodeType(
         @ApplicationContext context: Context
     ): DecoderType {
-        return DecoderType.Hard
+        return DecoderType.Nls
     }
 
     @Provides
@@ -86,4 +86,11 @@ object DataModule {
         @ApplicationContext context: Context
     ): KeyguardManager =
         context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
+    @Provides
+    @Singleton
+    fun providePowerManager(
+        @ApplicationContext context: Context
+    ): PowerManager =
+        context.getSystemService(Context.POWER_SERVICE) as PowerManager
 }

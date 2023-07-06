@@ -1,8 +1,9 @@
 package org.k.barcode.ui
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
@@ -15,8 +16,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DecoderViewModel @Inject constructor(
+    application: Application,
     decoderRepository: DecoderRepository,
-) : ViewModel() {
+) : AndroidViewModel(application) {
     private val _decoderEvent = MutableLiveData<DecoderEvent>()
     val decoderEvent: LiveData<DecoderEvent> = _decoderEvent
 
@@ -32,11 +34,6 @@ class DecoderViewModel @Inject constructor(
                 _barcode.value = it
             }.launchIn(viewModelScope)
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        reset()
     }
 
     fun reset() {

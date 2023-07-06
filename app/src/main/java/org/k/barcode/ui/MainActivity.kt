@@ -59,14 +59,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val settingsViewModel: SettingsViewModel by viewModels()
-
         val decoderViewModel: DecoderViewModel by viewModels()
+        val barcodeContentViewModel: BarcodeContentViewModel by viewModels()
 
         setContent {
             BarcodeTheme(darkTheme = false, dynamicColor = false) {
                 MainUI(
                     settingsViewModel = settingsViewModel,
                     decoderViewModel = decoderViewModel,
+                    barcodeContentViewModel = barcodeContentViewModel,
                     databaseRepository = databaseRepository,
                     decoderManager = decoderManager
                 )
@@ -99,13 +100,14 @@ class MainActivity : ComponentActivity() {
 fun MainUI(
     settingsViewModel: SettingsViewModel,
     decoderViewModel: DecoderViewModel,
+    barcodeContentViewModel: BarcodeContentViewModel,
     databaseRepository: DatabaseRepository,
     decoderManager: DecoderManager
 ) {
     val navHostController = rememberNavController()
     var settings by remember { mutableStateOf(false) }
-    val navBackStackEntry by navHostController.currentBackStackEntryAsState()
     val snackBarHostState = remember { SnackbarHostState() }
+    val navBackStackEntry by navHostController.currentBackStackEntryAsState()
 
     settings = navBackStackEntry?.destination?.route != Screen.ScanTest.route
 
@@ -153,10 +155,10 @@ fun MainUI(
         content = { paddingValues ->
             SetupNavGraph(
                 navHostController = navHostController,
-                snackBarHostState = snackBarHostState,
                 paddingValues = paddingValues,
                 settingsViewModel = settingsViewModel,
                 decoderViewModel = decoderViewModel,
+                barcodeContentViewModel = barcodeContentViewModel,
                 databaseRepository = databaseRepository,
                 decoderManager = decoderManager
             )

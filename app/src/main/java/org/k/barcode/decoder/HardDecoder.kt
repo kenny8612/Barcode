@@ -17,32 +17,25 @@ class HardDecoder : BarcodeDecoder {
     private var startTime = 0L
 
     override fun init(): Boolean {
-        return true//nativeOpen()
+        return nativeOpen()
     }
 
     override fun deInit() {
-        //nativeClose()
+        nativeClose()
     }
 
     override fun startDecode() {
         startTime = System.currentTimeMillis()
-        //nativeStartDecode()
-        queue.put(
-            BarcodeInfo(
-                "hhtpakdfjdsofiudsofi".toByteArray(),
-                "QR",
-                decodeTime = System.currentTimeMillis() - startTime
-            )
-        )
+        nativeStartDecode()
     }
 
     override fun cancelDecode() {
-        //nativeCancelDecode()
+        nativeCancelDecode()
     }
 
     override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
     override fun timeout(timeout: Int) {
-        //nativeDecodeTimeout(timeout)
+        nativeDecodeTimeout(timeout)
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -99,6 +92,6 @@ class HardDecoder : BarcodeDecoder {
     private external fun nativeDecodeTimeout(timeout: Int)
 
     init {
-        //System.loadLibrary("hw_decoder")
+        System.loadLibrary("hw_decoder")
     }
 }

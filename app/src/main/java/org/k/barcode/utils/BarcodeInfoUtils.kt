@@ -10,7 +10,6 @@ import org.k.barcode.model.Settings
 import java.nio.charset.Charset
 
 object BarcodeInfoUtils {
-
     fun BarcodeInfo.transformData(settings: Settings): String? =
         sourceData?.let {
             formatData = String(it, 0, it.size)
