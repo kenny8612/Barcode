@@ -3,79 +3,56 @@ package org.k.barcode.ui
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
-import kotlinx.coroutines.runBlocking
+import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.decoder.DecoderManager
+import org.k.barcode.ui.navigation.appSettingsScreen
+import org.k.barcode.ui.navigation.codeDetailSettingsScreen
+import org.k.barcode.ui.navigation.codeSettingsScreen
+import org.k.barcode.ui.navigation.scanTestScreen
 import org.k.barcode.ui.screen.Screen
-import org.k.barcode.ui.screen.ScanTestScreen
-import org.k.barcode.ui.screen.AppSettingsScreen
-import org.k.barcode.ui.screen.CodeDetailScreen
-import org.k.barcode.ui.screen.CodeSettingsScreen
+import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
+import org.k.barcode.ui.viewmodel.ScanTestViewModel
 
 @Composable
 fun SetupNavGraph(
     navHostController: NavHostController,
     paddingValues: PaddingValues,
-    settingsViewModel: SettingsViewModel,
-    decoderViewModel: DecoderViewModel,
-    barcodeContentViewModel: BarcodeContentViewModel,
+    scanTestViewModel: ScanTestViewModel,
+    codeSettingsViewModel: CodeSettingsViewModel,
+    appSettingsViewModel: AppSettingsViewModel,
     databaseRepository: DatabaseRepository,
-    decoderManager: DecoderManager
+    appDatabase: AppDatabase
 ) {
     NavHost(
         navController = navHostController,
         startDestination = Screen.ScanTest.route
     ) {
-        composable(route = Screen.ScanTest.route) {
-            ScanTestScreen(
-                paddingValues = paddingValues,
-                settingsViewModel = settingsViewModel,
-                decoderViewModel = decoderViewModel,
-                barcodeContentViewModel = barcodeContentViewModel
-            )
-        }
-        composable(route = Screen.AppSettings.route) {
-            AppSettingsScreen(
-                paddingValues = paddingValues,
-                navHostController = navHostController,
-                viewModel = settingsViewModel,
-                decoderManager = decoderManager
-            )
-        }
-        composable(
-            route = Screen.CodeSettings.route,
-            arguments = listOf(
-                navArgument("index") {
-                    type = NavType.IntType
-                }
-            )
+        scanTestScreen(
+            paddingValues,
+            scanTestViewModel
+        )
+        appSettingsScreen(
+            paddingValues,
+            appSettingsViewModel,
+            appDatabase
         ) {
-            CodeSettingsScreen(
-                paddingValues = paddingValues,
-                navHostController = navHostController,
-                viewModel = settingsViewModel,
-                currentIndex = it.arguments?.getInt("index")!!
-            )
+            navHostController.navigate(Screen.CodeSettings.route)
         }
-        composable(
-            route = Screen.CodeDetail.route,
-            arguments = listOf(navArgument("uid") {
-                type = NavType.IntType
-            })
+        codeSettingsScreen(
+            paddingValues,
+            codeSettingsViewModel,
+            appDatabase
         ) {
-            runBlocking {
-                databaseRepository.getCodeDetail(it.arguments?.getInt("uid")!!)
-            }.also {
-                CodeDetailScreen(
-                    paddingValues = paddingValues,
-                    navHostController = navHostController,
-                    codeDetails = it
-                )
-            }
+            navHostController.navigate(Screen.CodeDetail.codeUid(it.uid))
+        }
+        codeDetailSettingsScreen(
+            paddingValues,
+            databaseRepository,
+            appDatabase
+        ) {
+            navHostController.popBackStack()
         }
     }
 }

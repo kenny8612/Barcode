@@ -41,10 +41,13 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import org.k.barcode.BarcodeService
 import org.k.barcode.R
+import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.theme.BarcodeTheme
+import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
+import org.k.barcode.ui.viewmodel.ScanTestViewModel
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -53,23 +56,23 @@ class MainActivity : ComponentActivity() {
     lateinit var databaseRepository: DatabaseRepository
 
     @Inject
-    lateinit var decoderManager: DecoderManager
+    lateinit var appDatabase: AppDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val settingsViewModel: SettingsViewModel by viewModels()
-        val decoderViewModel: DecoderViewModel by viewModels()
-        val barcodeContentViewModel: BarcodeContentViewModel by viewModels()
+        val scanTestViewModel: ScanTestViewModel by viewModels()
+        val codeSettingsViewModel: CodeSettingsViewModel by viewModels()
+        val appSettingsViewModel: AppSettingsViewModel by viewModels()
 
         setContent {
             BarcodeTheme(darkTheme = false, dynamicColor = false) {
                 MainUI(
-                    settingsViewModel = settingsViewModel,
-                    decoderViewModel = decoderViewModel,
-                    barcodeContentViewModel = barcodeContentViewModel,
+                    scanTestViewModel = scanTestViewModel,
+                    codeSettingsViewModel = codeSettingsViewModel,
+                    appSettingsViewModel = appSettingsViewModel,
                     databaseRepository = databaseRepository,
-                    decoderManager = decoderManager
+                    appDatabase = appDatabase
                 )
             }
         }
@@ -98,38 +101,32 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainUI(
-    settingsViewModel: SettingsViewModel,
-    decoderViewModel: DecoderViewModel,
-    barcodeContentViewModel: BarcodeContentViewModel,
+    scanTestViewModel: ScanTestViewModel,
+    codeSettingsViewModel: CodeSettingsViewModel,
+    appSettingsViewModel: AppSettingsViewModel,
     databaseRepository: DatabaseRepository,
-    decoderManager: DecoderManager
+    appDatabase: AppDatabase
 ) {
     val navHostController = rememberNavController()
-    var settings by remember { mutableStateOf(false) }
+    var settingsUI by remember { mutableStateOf(false) }
     val snackBarHostState = remember { SnackbarHostState() }
     val navBackStackEntry by navHostController.currentBackStackEntryAsState()
 
-    settings = navBackStackEntry?.destination?.route != Screen.ScanTest.route
+    settingsUI = navBackStackEntry?.destination?.route != Screen.ScanTest.route
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(id = if (!settings) R.string.scan_test else R.string.scan_settings),
+                        text = stringResource(id = if (!settingsUI) R.string.scan_test else R.string.scan_settings),
                         fontWeight = FontWeight.Medium
                     )
                 },
                 actions = {
-                    if (!settings) {
+                    if (!settingsUI) {
                         IconButton(onClick = {
-                            navHostController.navigate(Screen.AppSettings.route) {
-                                //popUpTo(Screen.ScanTest.route){
-                                //    inclusive = true
-                                //    saveState = true
-                                //}
-                            }
-                            settings = true
+                            navHostController.navigate(Screen.AppSettings.route)
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
@@ -139,7 +136,7 @@ fun MainUI(
                     }
                 },
                 navigationIcon = {
-                    if (settings) {
+                    if (settingsUI) {
                         IconButton(onClick = {
                             navHostController.popBackStack()
                         }) {
@@ -156,11 +153,11 @@ fun MainUI(
             SetupNavGraph(
                 navHostController = navHostController,
                 paddingValues = paddingValues,
-                settingsViewModel = settingsViewModel,
-                decoderViewModel = decoderViewModel,
-                barcodeContentViewModel = barcodeContentViewModel,
+                scanTestViewModel = scanTestViewModel,
+                codeSettingsViewModel = codeSettingsViewModel,
+                appSettingsViewModel = appSettingsViewModel,
                 databaseRepository = databaseRepository,
-                decoderManager = decoderManager
+                appDatabase = appDatabase
             )
         },
         snackbarHost = {

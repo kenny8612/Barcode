@@ -55,12 +55,12 @@ import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.model.Settings
 import org.k.barcode.ui.MainActivity
-import org.k.barcode.ui.screen.send
 import org.k.barcode.utils.BarcodeInfoUtils.broadcast
 import org.k.barcode.utils.BarcodeInfoUtils.clipboard
 import org.k.barcode.utils.BarcodeInfoUtils.injectInputBox
 import org.k.barcode.utils.BarcodeInfoUtils.simulate
 import org.k.barcode.utils.BarcodeInfoUtils.transformData
+import org.k.barcode.utils.DatabaseUtils.update
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -75,10 +75,10 @@ class BarcodeService : Service() {
     lateinit var databaseRepository: DatabaseRepository
 
     @Inject
-    lateinit var decoderRepository: DecoderRepository
+    lateinit var appDatabase: AppDatabase
 
     @Inject
-    lateinit var appDatabase: AppDatabase
+    lateinit var decoderRepository: DecoderRepository
 
     @Inject
     lateinit var prefs: SharedPreferences
@@ -127,6 +127,7 @@ class BarcodeService : Service() {
         backupData()
         setupNotification()
         registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
+        registerReceiver(decoderControlReceiver, IntentFilter(ACTION_SCANNER_CONTROL))
 
         val intentFilter = IntentFilter()
         intentFilter.addAction(Intent.ACTION_SCREEN_ON)
@@ -262,7 +263,7 @@ class BarcodeService : Service() {
 
                     DecoderEvent.Error -> {
                         println("decoder error")
-                        settings.copy(decoderEnable = false).send()
+                        settings.copy(decoderEnable = false).update(appDatabase)
                     }
                 }
             }.launchIn(CoroutineScope(Dispatchers.IO))
@@ -289,6 +290,10 @@ class BarcodeService : Service() {
             parseBarcode(it)
             continuousDecode()
         }.launchIn(CoroutineScope(Dispatchers.IO))
+    }
+
+    private fun cancelBarcodeFlows() {
+        barcodeFlow?.cancel()
     }
 
     private suspend fun parseBarcode(barcodeInfo: BarcodeInfo) {
@@ -327,10 +332,6 @@ class BarcodeService : Service() {
         }
     }
 
-    private fun cancelBarcodeFlows() {
-        barcodeFlow?.cancel()
-    }
-
     private val scannerKeyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (ACTION_SCANNER_KEYCODE == intent?.action) {
@@ -348,7 +349,6 @@ class BarcodeService : Service() {
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            println(">>>>>>>>>>> ${intent?.action}")
             if (!settings.decoderEnable) return
 
             when (intent?.action) {
@@ -359,12 +359,28 @@ class BarcodeService : Service() {
                 }
 
                 Intent.ACTION_SCREEN_OFF -> {
-                    enterLowPowerConsumption()
                     cancelOpenDecoderDelayJob()
+                    enterLowPowerConsumption()
                 }
 
                 Intent.ACTION_USER_PRESENT -> {
                     openDecoderDelayJob()
+                }
+            }
+        }
+    }
+
+    private val decoderControlReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (ACTION_SCANNER_CONTROL == intent?.action) {
+                val decode = intent.getBooleanExtra("decode", false)
+
+
+                if (decode) {
+                    if (settings.decoderEnable)
+                        startDecode()
+                } else {
+                    cancelDecode()
                 }
             }
         }
@@ -376,6 +392,7 @@ class BarcodeService : Service() {
 
         decoderDelayOpenJob = GlobalScope.launch {
             delay(1000)
+            //camera not open
             decoderManager.open()
         }
     }
@@ -453,35 +470,28 @@ class BarcodeService : Service() {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     @Subscribe(threadMode = ThreadMode.POSTING, sticky = true)
     fun onEventMessage(event: MessageEvent) {
         when (event.message) {
-            Message.UpdateSettings -> {
-                GlobalScope.launch {
-                    appDatabase.settingsDao().update(event.arg1 as Settings)
-                }
-            }
-
-            Message.UpdateCode -> {
-                GlobalScope.launch {
-                    updateCode(arrayListOf(event.arg1 as CodeDetails))
-                }
-            }
+            //Message.UpdateCode -> {
+            //    val codeDetailsList = arrayListOf(event.arg1 as CodeDetails)
+            //    codeDetailsList.update(appDatabase)
+            //    decoderManager.updateCode(codeDetailsList)
+            //}
 
             Message.RestoreSettings -> {
-                GlobalScope.launch {
-                    val gson = Gson()
+                val gson = Gson()
 
-                    gson.fromJson(
-                        prefs.getString("settings_backup", ""),
-                        Settings::class.java
-                    )?.let { appDatabase.settingsDao().update(it) }
-
-                    gson.fromJson<List<CodeDetails>>(
-                        prefs.getString("codes_backup", ""),
-                        object : TypeToken<List<CodeDetails>>() {}.type
-                    )?.let { updateCode(it) }
+                gson.fromJson(
+                    prefs.getString("settings_backup", ""),
+                    Settings::class.java
+                )?.update(appDatabase)
+                gson.fromJson<List<CodeDetails>>(
+                    prefs.getString("codes_backup", ""),
+                    object : TypeToken<List<CodeDetails>>() {}.type
+                )?.let {
+                    it.update(appDatabase)
+                    decoderManager.updateCode(it)
                 }
             }
 
@@ -496,17 +506,9 @@ class BarcodeService : Service() {
         EventBus.getDefault().removeStickyEvent(event)
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun updateCode(codesList: List<CodeDetails>) {
-        GlobalScope.launch {
-            for (codeDetails in codesList)
-                appDatabase.codeDetailDDao().update(codeDetails)
-            decoderManager.updateCode(codesList)
-        }
-    }
-
     companion object {
         const val ACTION_SCANNER_KEYCODE = "action.scanner.keycode"
+        const val ACTION_SCANNER_CONTROL = "action.scanner.control"
     }
 
     enum class ContinuousDecodeState {

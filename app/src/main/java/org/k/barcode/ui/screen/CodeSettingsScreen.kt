@@ -20,64 +20,54 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import org.greenrobot.eventbus.EventBus
 import org.k.barcode.Constant.CODE_1D
 import org.k.barcode.Constant.CODE_2D
 import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
-import org.k.barcode.message.Message
-import org.k.barcode.message.MessageEvent
+import org.k.barcode.data.AppDatabase
 import org.k.barcode.model.CodeDetails
-import org.k.barcode.ui.SettingsViewModel
-
-fun CodeDetails.send() {
-    EventBus.getDefault().post(MessageEvent(Message.UpdateCode, this))
-}
+import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
+import org.k.barcode.utils.DatabaseUtils.update
 
 @Composable
 fun CodeSettingsScreen(
     paddingValues: PaddingValues,
-    navHostController: NavHostController,
-    viewModel: SettingsViewModel,
-    currentIndex: Int
+    codeSettingsViewModel: CodeSettingsViewModel,
+    appDatabase: AppDatabase,
+    onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
-    val code1DList = viewModel.code1D.observeAsState(initial = emptyList())
-    val code2DList = viewModel.code2D.observeAsState(initial = emptyList())
-    var selectIndex by remember { mutableStateOf(currentIndex) }
+    val code1DList = codeSettingsViewModel.code1D.observeAsState(initial = emptyList())
+    val code2DList = codeSettingsViewModel.code2D.observeAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
     ) {
-        CodeTypeTitle(currentIndex = selectIndex) {
-            selectIndex = it
-            navHostController.currentBackStackEntry?.arguments?.putInt("index", it)
+        CodeTypeTitle(currentIndex = codeSettingsViewModel.index.value) {
+            codeSettingsViewModel.index.value = it
         }
-        when (selectIndex) {
+        when (codeSettingsViewModel.index.value) {
             CODE_1D -> {
                 CodeListUI(
-                    navHostController = navHostController,
-                    codeList = code1DList.value
+                    code1DList.value,
+                    appDatabase,
+                    onNavigateToCodeDetails
                 )
             }
 
             CODE_2D -> {
                 CodeListUI(
-                    navHostController = navHostController,
-                    codeList = code2DList.value
+                    code2DList.value,
+                    appDatabase,
+                    onNavigateToCodeDetails
                 )
             }
 
@@ -142,18 +132,20 @@ fun CodeTypeTitle(currentIndex: Int, onClick: (selectIndex: Int) -> Unit) {
 
 @Composable
 fun CodeListUI(
-    navHostController: NavHostController,
-    codeList: List<CodeDetails>
+    codeList: List<CodeDetails>,
+    appDatabase: AppDatabase,
+    onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
     val scrollerLazyStata = rememberLazyListState()
 
     if (codeList.isNotEmpty()) {
         LazyColumn(state = scrollerLazyStata) {
-            items(codeList) {
-                CodeItem(
-                    navHostController = navHostController,
-                    codeDetails = it
-                )
+            items(codeList) { codeDetails ->
+                CodeItem(codeDetails, onCheck = {
+                    codeDetails.copy(enable = it).update(appDatabase)
+                }) {
+                    onNavigateToCodeDetails(codeDetails)
+                }
             }
         }
     }
@@ -161,14 +153,15 @@ fun CodeListUI(
 
 @Composable
 fun CodeItem(
-    navHostController: NavHostController,
-    codeDetails: CodeDetails
+    codeDetails: CodeDetails,
+    onCheck: (Boolean) -> Unit,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable { navHostController.navigate(route = Screen.CodeDetail.codeUid(codeDetails.uid)) },
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -189,7 +182,7 @@ fun CodeItem(
                     .padding(end = 4.dp),
                 checked = codeDetails.enable,
                 onCheckedChange = {
-                    codeDetails.copy(enable = it).send()
+                    onCheck(it)
                 }
             )
         }

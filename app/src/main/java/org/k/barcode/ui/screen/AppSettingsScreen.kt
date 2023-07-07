@@ -50,31 +50,27 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import androidx.navigation.NavHostController
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
-import org.k.barcode.decoder.DecoderManager
+import org.k.barcode.data.AppDatabase
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.Settings
-import org.k.barcode.ui.SettingsViewModel
+import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.utils.DatabaseUtils.update
 import org.k.barcode.utils.SettingsUtils.formatKeycode
 import org.k.barcode.utils.SettingsUtils.formatMode
 import org.k.barcode.utils.SettingsUtils.keyCodeToIndex
 
-fun Settings.send() {
-    EventBus.getDefault().post(MessageEvent(Message.UpdateSettings, this))
-}
-
 @Composable
 fun AppSettingsScreen(
     paddingValues: PaddingValues,
-    navHostController: NavHostController,
-    viewModel: SettingsViewModel,
-    decoderManager: DecoderManager
+    appSettingsViewModel: AppSettingsViewModel,
+    appDatabase: AppDatabase,
+    onNavigateToCodeSettings: () -> Unit
 ) {
     val context = LocalContext.current
-    val settings by viewModel.settings.observeAsState(initial = Settings())
+    val settings by appSettingsViewModel.settings.observeAsState(initial = Settings())
 
     Column(
         modifier = Modifier
@@ -85,46 +81,44 @@ fun AppSettingsScreen(
         SwitchEnable(
             stringResource(id = R.string.scan_service), settings.decoderEnable
         ) {
-            settings.copy(decoderEnable = it).send()
+            settings.copy(decoderEnable = it).update(appDatabase)
         }
         SwitchEnable(
             stringResource(id = R.string.decoder_vibrate), settings.decoderVibrate,
         ) {
-            settings.copy(decoderVibrate = it).send()
+            settings.copy(decoderVibrate = it).update(appDatabase)
         }
         SwitchEnable(
             stringResource(id = R.string.decoder_sound), settings.decoderSound
         ) {
-            settings.copy(decoderSound = it).send()
+            settings.copy(decoderSound = it).update(appDatabase)
         }
         SwitchEnable(
             stringResource(id = R.string.continuous_decode), settings.continuousDecode
         ) {
-            settings.copy(continuousDecode = it).send()
+            settings.copy(continuousDecode = it).update(appDatabase)
         }
         SwitchEnable(
             stringResource(id = R.string.release_decode), settings.releaseDecode
         ) {
-            settings.copy(releaseDecode = it).send()
+            settings.copy(releaseDecode = it).update(appDatabase)
         }
-        if (decoderManager.supportLight()) {
-            SwitchEnable(stringResource(id = R.string.decoder_light), settings.decoderLight) {
-                settings.copy(decoderLight = it).send()
-            }
+        SwitchEnable(stringResource(id = R.string.decoder_light), settings.decoderLight) {
+            settings.copy(decoderLight = it).update(appDatabase)
         }
         ListSelect(
             stringResource(id = R.string.decoder_mode),
             stringArrayResource(id = R.array.decoder_mode_entries),
             stringArrayResource(id = R.array.decoder_mode_entries)[settings.decoderMode.ordinal]
         ) {
-            settings.copy(decoderMode = formatMode(context, it)).send()
+            settings.copy(decoderMode = formatMode(context, it)).update(appDatabase)
         }
         ListSelect(
             stringResource(id = R.string.decoder_charset),
             stringArrayResource(id = R.array.decoder_charset_entries),
             settings.decoderCharset
         ) {
-            settings.copy(decoderCharset = it).send()
+            settings.copy(decoderCharset = it).update(appDatabase)
         }
         ListSelect(
             stringResource(id = R.string.attach_keycode),
@@ -133,23 +127,23 @@ fun AppSettingsScreen(
                 context, settings.attachKeycode
             )]
         ) {
-            settings.copy(attachKeycode = formatKeycode(context, it)).send()
+            settings.copy(attachKeycode = formatKeycode(context, it)).update(appDatabase)
         }
         EditViewText(
             stringResource(id = R.string.decoder_prefix), settings.decoderPrefix
         ) {
-            settings.copy(decoderPrefix = it).send()
+            settings.copy(decoderPrefix = it).update(appDatabase)
         }
         EditViewText(
             stringResource(id = R.string.decoder_suffix), settings.decodeSuffix
         ) {
-            settings.copy(decodeSuffix = it).send()
+            settings.copy(decodeSuffix = it).update(appDatabase)
         }
         EditViewText(
             stringResource(id = R.string.decoder_filter_characters),
             settings.decoderFilterCharacters
         ) {
-            settings.copy(decoderFilterCharacters = it).send()
+            settings.copy(decoderFilterCharacters = it).update(appDatabase)
         }
         EditViewNumber(
             stringResource(id = R.string.continuous_decode_interval),
@@ -157,14 +151,12 @@ fun AppSettingsScreen(
             200,
             10 * 1000
         ) {
-            settings.copy(continuousDecodeInterval = it).send()
+            settings.copy(continuousDecodeInterval = it).update(appDatabase)
         }
-        if (decoderManager.supportCode()) {
-            CodesEditView(
-                navHostController = navHostController,
-                enable = settings.decoderEnable
-            )
-        }
+        CodesEditView(
+            settings.decoderEnable,
+            onNavigateToCodeSettings
+        )
         RestoreSettings()
     }
 }
@@ -216,8 +208,8 @@ fun RestoreSettings() {
 
 @Composable
 fun CodesEditView(
-    navHostController: NavHostController,
-    enable: Boolean
+    enable: Boolean,
+    onNavigateToCodeSettings: () -> Unit
 ) {
     TextButton(
         modifier = Modifier
@@ -225,7 +217,7 @@ fun CodesEditView(
             .height(62.dp)
             .padding(top = 8.dp, bottom = 4.dp),
         border = BorderStroke(width = 1.dp, color = Color.LightGray),
-        onClick = { navHostController.navigate(Screen.CodeSettings.setIndex(0)) },
+        onClick = { onNavigateToCodeSettings() },
         enabled = enable
     ) {
         Text(text = stringResource(id = R.string.codes_edit))

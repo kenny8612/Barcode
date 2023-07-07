@@ -43,22 +43,18 @@ import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.Settings
-import org.k.barcode.ui.BarcodeContentViewModel
-import org.k.barcode.ui.DecoderViewModel
-import org.k.barcode.ui.SettingsViewModel
+import org.k.barcode.ui.viewmodel.ScanTestViewModel
 import org.k.barcode.utils.BarcodeInfoUtils.transformData
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTextApi::class)
 @Composable
 fun ScanTestScreen(
     paddingValues: PaddingValues,
-    settingsViewModel: SettingsViewModel,
-    decoderViewModel: DecoderViewModel,
-    barcodeContentViewModel: BarcodeContentViewModel
+    scanTestViewModel: ScanTestViewModel
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val decoderEvent by decoderViewModel.decoderEvent.observeAsState(initial = DecoderEvent.Closed)
-    val settings by settingsViewModel.settings.observeAsState(initial = Settings())
+    val decoderEvent by scanTestViewModel.decoderEvent.observeAsState(initial = DecoderEvent.Closed)
+    val settings by scanTestViewModel.settings.observeAsState(initial = Settings())
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -68,7 +64,8 @@ fun ScanTestScreen(
             .padding(paddingValues)
     ) {
         Clear {
-            barcodeContentViewModel.barcodeContent.value = ""
+            scanTestViewModel.barcodeContent.value = ""
+            scanTestViewModel.barcodeInfo.value = BarcodeInfo()
         }
         TextField(
             modifier = Modifier
@@ -76,7 +73,7 @@ fun ScanTestScreen(
                 .weight(1f)
                 .padding(4.dp)
                 .verticalScroll(scrollState),
-            value = barcodeContentViewModel.barcodeContent.value,
+            value = scanTestViewModel.barcodeContent.value,
             onValueChange = {},
             readOnly = true,
             textStyle = TextStyle(
@@ -84,23 +81,23 @@ fun ScanTestScreen(
             ),
             colors = TextFieldDefaults.textFieldColors(containerColor = Color.Transparent)
         )
-        DecodeResult(barcodeContentViewModel.barcodeInfo.value)
+        DecodeResult(scanTestViewModel.barcodeInfo.value)
         Scan(decoderEvent)
     }
 
     DisposableEffect(Unit) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
-                decoderViewModel.barcode.removeObservers(lifecycleOwner)
-                decoderViewModel.reset()
+                scanTestViewModel.barcode.removeObservers(lifecycleOwner)
+                scanTestViewModel.reset()
             } else if (event == Lifecycle.Event.ON_RESUME) {
-                decoderViewModel.barcode.observe(lifecycleOwner) { barcodeInfo ->
+                scanTestViewModel.barcode.observe(lifecycleOwner) { barcodeInfo ->
                     barcodeInfo.transformData(settings)?.let {
-                        barcodeContentViewModel.barcodeInfo.value = barcodeInfo
-                        barcodeContentViewModel.barcodeContent.value =
-                            barcodeContentViewModel.barcodeContent.value.toBarcodeContent(it)
+                        scanTestViewModel.barcodeInfo.value = barcodeInfo
+                        scanTestViewModel.barcodeContent.value =
+                            scanTestViewModel.barcodeContent.value.toBarcodeContent(it)
                         scope.launch {
-                            scrollState.animateScrollTo(barcodeContentViewModel.barcodeContent.value.length)
+                            scrollState.animateScrollTo(scanTestViewModel.barcodeContent.value.length)
                         }
                     }
                 }

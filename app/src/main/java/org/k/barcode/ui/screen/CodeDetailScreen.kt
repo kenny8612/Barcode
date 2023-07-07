@@ -30,16 +30,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 import org.k.barcode.R
+import org.k.barcode.data.AppDatabase
 import org.k.barcode.decoder.Code
 import org.k.barcode.model.CodeDetails
+import org.k.barcode.utils.DatabaseUtils.update
 
 @Composable
 fun CodeDetailScreen(
     paddingValues: PaddingValues,
-    navHostController: NavHostController,
-    codeDetails: CodeDetails
+    codeDetails: CodeDetails,
+    appDatabase: AppDatabase,
+    onSave: () -> Unit
 ) {
     val value by remember { mutableStateOf(codeDetails) }
 
@@ -130,8 +132,8 @@ fun CodeDetailScreen(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             onClick = {
                 if (value != codeDetails)
-                    value.send()
-                navHostController.popBackStack()
+                    value.update(appDatabase)
+                onSave()
             }) {
             Text(text = stringResource(id = R.string.save_code))
         }
@@ -170,6 +172,7 @@ fun UPC(codeDetails: CodeDetails) {
     ELAN(codeDetails = codeDetails)
     UpcPreamble(codeDetails = codeDetails)
 }
+
 @Composable
 fun UpcPreamble(codeDetails: CodeDetails) {
     var preamble by remember {

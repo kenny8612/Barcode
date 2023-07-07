@@ -21,8 +21,8 @@ object BarcodeInfoUtils {
                         it.size,
                         Charset.forName(settings.decoderCharset)
                     )
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (_: Exception) {
+
                 }
             }
             if (settings.decoderPrefix.isNotEmpty())
