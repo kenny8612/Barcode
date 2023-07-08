@@ -19,7 +19,6 @@
     <string name="barcode_length_value">Length: %1$d</string>
     <string name="barcode_aim_value">AIM: %1$s</string>
     <string name="decode_time_value">Time: %1$d ms</string>
-    <string name="clear">Clear</string>
     <string name="continuous_decode">Continuous decode</string>
     <string name="continuous_decode_interval">Continuous decode interval(ms)</string>
     <string name="codes_edit">Code edit</string>
@@ -46,4 +45,10 @@
     <string name="start_stop_characters">Start/Stop characters</string>
     <string name="full_ascii">Full ascii</string>
     <string name="checkDigit">Check digit</string>
+    <string name="broadcast_edit">Broadcast edit</string>
+    <string name="action_start_decode">Action start decode</string>
+    <string name="action_stop_decode">Action stop decode</string>
+    <string name="action_decode_data">Action decode data</string>
+    <string name="action_decode_data_extra_byte">Action decode data extra(byte[])</string>
+    <string name="action_decode_data_extra_string">Action decode data extra(String)</string>
 </resources>

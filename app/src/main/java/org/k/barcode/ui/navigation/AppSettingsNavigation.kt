@@ -6,20 +6,22 @@ import androidx.navigation.compose.composable
 import org.k.barcode.data.AppDatabase
 import org.k.barcode.ui.screen.AppSettingsScreen
 import org.k.barcode.ui.screen.Screen
-import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.ui.viewmodel.SettingsViewModel
 
 fun NavGraphBuilder.appSettingsScreen(
     paddingValues: PaddingValues,
-    appSettingsViewModel: AppSettingsViewModel,
+    settingsViewModel: SettingsViewModel,
     appDatabase: AppDatabase,
-    onNavigateToCodeSettings: () -> Unit
+    onNavigateToCodeSettings: () -> Unit,
+    onNavigateToBroadcastSettings: () -> Unit
 ) {
     composable(route = Screen.AppSettings.route) {
         AppSettingsScreen(
             paddingValues,
-            appSettingsViewModel,
+            settingsViewModel,
             appDatabase,
-            onNavigateToCodeSettings
+            onNavigateToCodeSettings,
+            onNavigateToBroadcastSettings
         )
     }
 }

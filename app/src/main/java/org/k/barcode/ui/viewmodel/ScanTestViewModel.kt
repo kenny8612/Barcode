@@ -1,6 +1,7 @@
 package org.k.barcode.ui.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -32,7 +33,7 @@ class ScanTestViewModel @Inject constructor(
     private val _barcode = MutableLiveData<BarcodeInfo>()
     val barcode: LiveData<BarcodeInfo> = _barcode
 
-    var barcodeContent = mutableStateOf("")
+    var barcodeList = mutableStateListOf<String>()
     var barcodeInfo = mutableStateOf(BarcodeInfo())
 
     init {

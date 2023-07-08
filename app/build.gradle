@@ -10,8 +10,8 @@ android {
     compileSdk 33
 
     signingConfigs {
-        ht500_an10 {
-            storeFile file('D://app//signing//ht500_an10.jks')
+        ht500_an12 {
+            storeFile file('D://app//signing//ht500_an12.jks')
             storePassword 'android'
             keyAlias 'key'
             keyPassword 'android'
@@ -46,9 +46,10 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.ht500_an12
         }
         debug {
-            //signingConfig signingConfigs.ht500_an10
+            signingConfig signingConfigs.ht500_an12
         }
     }
     compileOptions {
@@ -126,5 +127,6 @@ dependencies {
     implementation "androidx.navigation:navigation-compose:$nav_version"
 
     implementation 'com.google.code.gson:gson:2.9.0'
-    implementation 'org.apache.commons:commons-text:1.9'
+    //implementation 'org.apache.commons:commons-text:1.9'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.10'
 }

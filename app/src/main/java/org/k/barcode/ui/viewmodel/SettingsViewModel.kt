@@ -14,7 +14,7 @@ import org.k.barcode.model.Settings
 import javax.inject.Inject
 
 @HiltViewModel
-class AppSettingsViewModel @Inject constructor(
+class SettingsViewModel @Inject constructor(
     application: Application,
     databaseRepository: DatabaseRepository
 ) : AndroidViewModel(application) {

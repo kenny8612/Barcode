@@ -7,11 +7,12 @@ import androidx.navigation.compose.NavHost
 import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.ui.navigation.appSettingsScreen
+import org.k.barcode.ui.navigation.broadcastSettingsScreen
 import org.k.barcode.ui.navigation.codeDetailSettingsScreen
 import org.k.barcode.ui.navigation.codeSettingsScreen
 import org.k.barcode.ui.navigation.scanTestScreen
 import org.k.barcode.ui.screen.Screen
-import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.ui.viewmodel.SettingsViewModel
 import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
 import org.k.barcode.ui.viewmodel.ScanTestViewModel
 
@@ -21,7 +22,7 @@ fun SetupNavGraph(
     paddingValues: PaddingValues,
     scanTestViewModel: ScanTestViewModel,
     codeSettingsViewModel: CodeSettingsViewModel,
-    appSettingsViewModel: AppSettingsViewModel,
+    settingsViewModel: SettingsViewModel,
     databaseRepository: DatabaseRepository,
     appDatabase: AppDatabase
 ) {
@@ -35,11 +36,15 @@ fun SetupNavGraph(
         )
         appSettingsScreen(
             paddingValues,
-            appSettingsViewModel,
-            appDatabase
-        ) {
-            navHostController.navigate(Screen.CodeSettings.route)
-        }
+            settingsViewModel,
+            appDatabase,
+            onNavigateToBroadcastSettings = {
+                navHostController.navigate(Screen.BroadcastSettings.route)
+            },
+            onNavigateToCodeSettings = {
+                navHostController.navigate(Screen.CodeSettings.route)
+            }
+        )
         codeSettingsScreen(
             paddingValues,
             codeSettingsViewModel,
@@ -48,6 +53,13 @@ fun SetupNavGraph(
             navHostController.navigate(Screen.CodeDetail.codeUid(it.uid))
         }
         codeDetailSettingsScreen(
+            paddingValues,
+            databaseRepository,
+            appDatabase
+        ) {
+            navHostController.popBackStack()
+        }
+        broadcastSettingsScreen(
             paddingValues,
             databaseRepository,
             appDatabase

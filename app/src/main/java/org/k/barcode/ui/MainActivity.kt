@@ -45,7 +45,7 @@ import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.theme.BarcodeTheme
-import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.ui.viewmodel.SettingsViewModel
 import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
 import org.k.barcode.ui.viewmodel.ScanTestViewModel
 import javax.inject.Inject
@@ -63,14 +63,14 @@ class MainActivity : ComponentActivity() {
 
         val scanTestViewModel: ScanTestViewModel by viewModels()
         val codeSettingsViewModel: CodeSettingsViewModel by viewModels()
-        val appSettingsViewModel: AppSettingsViewModel by viewModels()
+        val settingsViewModel: SettingsViewModel by viewModels()
 
         setContent {
             BarcodeTheme(darkTheme = false, dynamicColor = false) {
                 MainUI(
                     scanTestViewModel = scanTestViewModel,
                     codeSettingsViewModel = codeSettingsViewModel,
-                    appSettingsViewModel = appSettingsViewModel,
+                    settingsViewModel = settingsViewModel,
                     databaseRepository = databaseRepository,
                     appDatabase = appDatabase
                 )
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
 fun MainUI(
     scanTestViewModel: ScanTestViewModel,
     codeSettingsViewModel: CodeSettingsViewModel,
-    appSettingsViewModel: AppSettingsViewModel,
+    settingsViewModel: SettingsViewModel,
     databaseRepository: DatabaseRepository,
     appDatabase: AppDatabase
 ) {
@@ -155,7 +155,7 @@ fun MainUI(
                 paddingValues = paddingValues,
                 scanTestViewModel = scanTestViewModel,
                 codeSettingsViewModel = codeSettingsViewModel,
-                appSettingsViewModel = appSettingsViewModel,
+                settingsViewModel = settingsViewModel,
                 databaseRepository = databaseRepository,
                 appDatabase = appDatabase
             )

@@ -56,7 +56,7 @@ import org.k.barcode.data.AppDatabase
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.Settings
-import org.k.barcode.ui.viewmodel.AppSettingsViewModel
+import org.k.barcode.ui.viewmodel.SettingsViewModel
 import org.k.barcode.utils.DatabaseUtils.update
 import org.k.barcode.utils.SettingsUtils.formatKeycode
 import org.k.barcode.utils.SettingsUtils.formatMode
@@ -65,12 +65,13 @@ import org.k.barcode.utils.SettingsUtils.keyCodeToIndex
 @Composable
 fun AppSettingsScreen(
     paddingValues: PaddingValues,
-    appSettingsViewModel: AppSettingsViewModel,
+    settingsViewModel: SettingsViewModel,
     appDatabase: AppDatabase,
-    onNavigateToCodeSettings: () -> Unit
+    onNavigateToCodeSettings: () -> Unit,
+    onNavigateToBroadcastSettings: () -> Unit
 ) {
     val context = LocalContext.current
-    val settings by appSettingsViewModel.settings.observeAsState(initial = Settings())
+    val settings by settingsViewModel.settings.observeAsState(initial = Settings())
 
     Column(
         modifier = Modifier
@@ -157,7 +158,22 @@ fun AppSettingsScreen(
             settings.decoderEnable,
             onNavigateToCodeSettings
         )
+        BroadcastSettingsView(onNavigateToBroadcastSettings)
         RestoreSettings()
+    }
+}
+
+@Composable
+fun BroadcastSettingsView(onNavigateToBroadcastSettings: () -> Unit) {
+    TextButton(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(62.dp)
+            .padding(top = 8.dp, bottom = 4.dp),
+        border = BorderStroke(width = 1.dp, color = Color.LightGray),
+        onClick = { onNavigateToBroadcastSettings() }
+    ) {
+        Text(text = stringResource(id = R.string.broadcast_edit))
     }
 }
 
@@ -222,7 +238,6 @@ fun CodesEditView(
     ) {
         Text(text = stringResource(id = R.string.codes_edit))
     }
-
 }
 
 @Composable

@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "85ae20b5b378f1af7320e44fac3b906f",
+    "identityHash": "8d2f0e86448be0845ad3f93390ad569d",
     "entities": [
       {
         "tableName": "settings",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, `decoderFilterCharacters` TEXT NOT NULL, `releaseDecode` INTEGER NOT NULL, `decoderLight` INTEGER NOT NULL, PRIMARY KEY(`uid`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, `decoderFilterCharacters` TEXT NOT NULL, `releaseDecode` INTEGER NOT NULL, `decoderLight` INTEGER NOT NULL, `broadcastStartDecode` TEXT NOT NULL, `broadcastStopDecode` TEXT NOT NULL, `broadcastDecodeData` TEXT NOT NULL, `broadcastDecodeDataByte` TEXT NOT NULL, `broadcastDecodeDataString` TEXT NOT NULL, PRIMARY KEY(`uid`))",
         "fields": [
           {
             "fieldPath": "uid",
@@ -90,6 +90,36 @@
             "fieldPath": "decoderLight",
             "columnName": "decoderLight",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastStartDecode",
+            "columnName": "broadcastStartDecode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastStopDecode",
+            "columnName": "broadcastStopDecode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastDecodeData",
+            "columnName": "broadcastDecodeData",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastDecodeDataByte",
+            "columnName": "broadcastDecodeDataByte",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastDecodeDataString",
+            "columnName": "broadcastDecodeDataString",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -198,7 +228,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '85ae20b5b378f1af7320e44fac3b906f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8d2f0e86448be0845ad3f93390ad569d')"
     ]
   }
 }

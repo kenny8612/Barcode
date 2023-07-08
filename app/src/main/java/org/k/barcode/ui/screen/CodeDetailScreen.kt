@@ -49,8 +49,7 @@ fun CodeDetailScreen(
         modifier = Modifier.padding(
             top = paddingValues.calculateTopPadding(),
             start = 8.dp,
-            end = 8.dp,
-            bottom = 8.dp
+            end = 8.dp
         )
     ) {
         CodeTitle(name = codeDetails.name)
@@ -128,13 +127,14 @@ fun CodeDetailScreen(
         Button(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .height(75.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             onClick = {
                 if (value != codeDetails)
                     value.update(appDatabase)
                 onSave()
-            }) {
+            }
+        ) {
             Text(text = stringResource(id = R.string.save_code))
         }
     }

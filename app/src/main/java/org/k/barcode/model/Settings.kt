@@ -20,5 +20,10 @@ data class Settings(
     @ColumnInfo(name = "attachKeycode") var attachKeycode: Int = 0,
     @ColumnInfo(name = "decoderFilterCharacters") var decoderFilterCharacters: String = "",
     @ColumnInfo(name = "releaseDecode") var releaseDecode: Boolean = false,
-    @ColumnInfo(name = "decoderLight") var decoderLight: Boolean = true
+    @ColumnInfo(name = "decoderLight") var decoderLight: Boolean = true,
+    @ColumnInfo(name = "broadcastStartDecode") var broadcastStartDecode: String = "",
+    @ColumnInfo(name = "broadcastStopDecode") var broadcastStopDecode: String = "",
+    @ColumnInfo(name = "broadcastDecodeData") var broadcastDecodeData: String = "",
+    @ColumnInfo(name = "broadcastDecodeDataByte") var broadcastDecodeDataByte: String = "",
+    @ColumnInfo(name = "broadcastDecodeDataString") var broadcastDecodeDataString: String = ""
 )

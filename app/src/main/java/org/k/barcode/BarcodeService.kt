@@ -36,10 +36,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.k.barcode.AppContent.Companion.TAG
+import org.k.barcode.Constant.ACTION_SCANNER_KEYCODE
 import org.k.barcode.Constant.BARCODE_CHANNEL_ID
 import org.k.barcode.Constant.DEFAULT_DECODE_TIMEOUT
 import org.k.barcode.Constant.NOTIFICATION_ID
@@ -96,12 +98,14 @@ class BarcodeService : Service() {
     lateinit var vibrator: Vibrator
 
     private lateinit var settings: Settings
+    private lateinit var codeDetailsList: List<CodeDetails>
 
     private lateinit var notification: Notification
 
     private var decoderEventFlow: Job? = null
     private var barcodeFlow: Job? = null
-    private var settingsDataFlow: Job? = null
+    private var settingsFlow: Job? = null
+    private var codesFlow: Job? = null
 
     private lateinit var soundPool: SoundPool
     private var scannerSoundId = 0
@@ -124,10 +128,15 @@ class BarcodeService : Service() {
         soundPool = builder.build()
         scannerSoundId = soundPool.load(this, R.raw.scan_buzzer, 1)
 
-        backupData()
         setupNotification()
-        registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
-        registerReceiver(decoderControlReceiver, IntentFilter(ACTION_SCANNER_CONTROL))
+        loadSettingsData()
+        backupSettingsData()
+
+        settings.decoderEnable = false
+
+        observeDecoderEventFlow()
+        observeCodesFlow()
+        observeSettingsFlow()
 
         val intentFilter = IntentFilter()
         intentFilter.addAction(Intent.ACTION_SCREEN_ON)
@@ -135,8 +144,9 @@ class BarcodeService : Service() {
         intentFilter.addAction(Intent.ACTION_USER_PRESENT)
         registerReceiver(screenReceiver, intentFilter)
 
-        observeSettingsDataFlow()
-        observeDecoderEventFlow()
+        /** for sdk **/
+        //registerReceiver(decoderSettingsReceiver, IntentFilter(ACTION_SCANNER_SETTINGS))
+
         EventBus.getDefault().register(this)
         Log.d(TAG, "barcode service start")
     }
@@ -146,12 +156,25 @@ class BarcodeService : Service() {
         soundPool.release()
         notificationManager.cancelAll()
         notificationManager.deleteNotificationChannel(BARCODE_CHANNEL_ID)
-        unregisterReceiver(scannerKeyReceiver)
+
         unregisterReceiver(screenReceiver)
+        unregisterDecodeReceiver()
         cancelSettingsDataFlow()
+        cancelCodesFlow()
         cancelDecoderEventFlow()
         EventBus.getDefault().unregister(this)
         Log.d(TAG, "barcode service stop")
+    }
+
+    private fun registerDecodeReceiver(settings: Settings) {
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(settings.broadcastStartDecode)
+        intentFilter.addAction(settings.broadcastStopDecode)
+        registerReceiver(decoderReceiver, intentFilter)
+    }
+
+    private fun unregisterDecodeReceiver() {
+        unregisterReceiver(decoderReceiver)
     }
 
     private fun setupNotification() {
@@ -179,23 +202,25 @@ class BarcodeService : Service() {
         notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun backupData() {
-        GlobalScope.launch {
-            if (!prefs.getBoolean("settings_backup_done", false)) {
-                val settings = databaseRepository.getSettings()
-                prefs.edit()
-                    .putString("settings_backup", Gson().toJson(settings))
-                    .putBoolean("settings_backup_done", true)
-                    .apply()
-            }
-            if (!prefs.getBoolean("codes_backup_done", false)) {
-                val codes = databaseRepository.getCodes()
-                prefs.edit()
-                    .putString("codes_backup", Gson().toJson(codes))
-                    .putBoolean("codes_backup_done", true)
-                    .apply()
-            }
+    private fun loadSettingsData() {
+        runBlocking {
+            settings = appDatabase.settingsDao().get()
+            codeDetailsList = appDatabase.codeDetailDDao().getCodes()
+        }
+    }
+
+    private fun backupSettingsData() {
+        if (!prefs.getBoolean("settings_backup_done", false)) {
+            prefs.edit()
+                .putString("settings_backup", Gson().toJson(settings))
+                .putBoolean("settings_backup_done", true)
+                .apply()
+        }
+        if (!prefs.getBoolean("codes_backup_done", false)) {
+            prefs.edit()
+                .putString("codes_backup", Gson().toJson(codeDetailsList))
+                .putBoolean("codes_backup_done", true)
+                .apply()
         }
     }
 
@@ -204,30 +229,63 @@ class BarcodeService : Service() {
         return START_STICKY
     }
 
-    private fun observeSettingsDataFlow() {
-        if (settingsDataFlow?.isActive == true)
+    private fun observeSettingsFlow() {
+        if (settingsFlow?.isActive == true)
             return
 
-        settingsDataFlow = databaseRepository.getSettingsFlow().onEach {
-            if (it.decoderEnable) {
-                decoderManager.open()
-            } else {
-                decoderManager.cancelDecode()
-                decoderManager.close()
+        settingsFlow = databaseRepository.getSettingsFlow().onEach {
+            if (it.decoderEnable != settings.decoderEnable) {
+                if (it.decoderEnable) {
+                    decoderManager.open()
+                    registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
+                    registerDecodeReceiver(it)
+                } else {
+                    decoderManager.cancelDecode()
+                    decoderManager.close()
+                    unregisterReceiver(scannerKeyReceiver)
+                    unregisterDecodeReceiver()
+                }
             }
-
-            if (!it.continuousDecode)
-                continuousDecodeState = ContinuousDecodeState.Stop
-            if (decoderManager.supportLight())
+            if (it.decoderLight != settings.decoderLight)
                 decoderManager.setLight(it.decoderLight)
 
-            settings = it
+            if (it.continuousDecode != settings.continuousDecode) {
+                if (!it.continuousDecode)
+                    continuousDecodeState = ContinuousDecodeState.Stop
+            }
 
+            if (settings.decoderEnable &&
+                (it.broadcastStartDecode != settings.broadcastStartDecode ||
+                        it.broadcastStopDecode != settings.broadcastStopDecode)
+            ) {
+                unregisterDecodeReceiver()
+                registerDecodeReceiver(it)
+            }
+            settings = it
         }.launchIn(CoroutineScope(Dispatchers.IO))
     }
 
     private fun cancelSettingsDataFlow() {
-        settingsDataFlow?.cancel()
+        settingsFlow?.cancel()
+    }
+
+    private fun observeCodesFlow() {
+        if (codesFlow?.isActive == true) return
+
+        codesFlow = databaseRepository.getCodesFlow().onEach {
+            val diffCodesList = it.filter { codeDetails ->
+                !codeDetailsList.contains(codeDetails)
+            }
+            if (diffCodesList.isNotEmpty()) {
+                codeDetailsList = it
+                if (settings.decoderEnable)
+                    decoderManager.updateCode(diffCodesList)
+            }
+        }.launchIn(CoroutineScope(Dispatchers.IO))
+    }
+
+    private fun cancelCodesFlow() {
+        codesFlow?.cancel()
     }
 
     private fun observeDecoderEventFlow() {
@@ -239,31 +297,24 @@ class BarcodeService : Service() {
                 when (it) {
                     DecoderEvent.Opened -> {
                         println("decoder opened")
-                        val notification = Notification.Builder.recoverBuilder(this, notification)
-                            .setContentTitle(getString(R.string.service_start))
-                            .build()
-                        notificationManager.notify(NOTIFICATION_ID, notification)
-
-                        decoderManager.updateCode(databaseRepository.getCodes())
+                        decoderManager.updateCode(codeDetailsList)
                         decoderManager.setLight(settings.decoderLight)
                         decoderManager.setDecodeTimeout(DEFAULT_DECODE_TIMEOUT)
-
                         observeBarcodeFlow()
+                        updateNotification(serviceStart = true)
                     }
 
                     DecoderEvent.Closed -> {
                         println("decoder closed")
-                        val notification = Notification.Builder.recoverBuilder(this, notification)
-                            .setContentTitle(getString(R.string.service_stop))
-                            .build()
-                        notificationManager.notify(NOTIFICATION_ID, notification)
                         cancelBarcodeFlows()
                         continuousDecodeState = ContinuousDecodeState.Stop
+                        updateNotification(serviceStart = false)
                     }
 
                     DecoderEvent.Error -> {
                         println("decoder error")
-                        settings.copy(decoderEnable = false).update(appDatabase)
+                        settings.decoderEnable = false
+                        settings.update(appDatabase)
                     }
                 }
             }.launchIn(CoroutineScope(Dispatchers.IO))
@@ -271,6 +322,13 @@ class BarcodeService : Service() {
 
     private fun cancelDecoderEventFlow() {
         decoderEventFlow?.cancel()
+    }
+
+    private fun updateNotification(serviceStart: Boolean) {
+        val notification = Notification.Builder.recoverBuilder(this, notification)
+            .setContentTitle(getString(if (serviceStart) R.string.service_start else R.string.service_stop))
+            .build()
+        notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
     private suspend fun continuousDecode() {
@@ -314,21 +372,10 @@ class BarcodeService : Service() {
             vibrate()
 
         when (settings.decoderMode) {
-            DecodeMode.Focus -> {
-                barcodeInfo.injectInputBox(this, settings)
-            }
-
-            DecodeMode.Broadcast -> {
-                barcodeInfo.broadcast(this)
-            }
-
-            DecodeMode.Simulate -> {
-                barcodeInfo.simulate(this, settings)
-            }
-
-            DecodeMode.Clipboard -> {
-                barcodeInfo.clipboard(this)
-            }
+            DecodeMode.Focus -> barcodeInfo.injectInputBox(this, settings)
+            DecodeMode.Broadcast -> barcodeInfo.broadcast(this, settings)
+            DecodeMode.Simulate -> barcodeInfo.simulate(this, settings)
+            DecodeMode.Clipboard -> barcodeInfo.clipboard(this)
         }
     }
 
@@ -370,19 +417,19 @@ class BarcodeService : Service() {
         }
     }
 
-    private val decoderControlReceiver = object : BroadcastReceiver() {
+    private val decoderReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (ACTION_SCANNER_CONTROL == intent?.action) {
-                val decode = intent.getBooleanExtra("decode", false)
-
-
-                if (decode) {
-                    if (settings.decoderEnable)
-                        startDecode()
-                } else {
-                    cancelDecode()
-                }
+            if (settings.broadcastStartDecode == intent?.action) {
+                startDecode(isSDK = true)
+            } else if (settings.broadcastStopDecode == intent?.action) {
+                cancelDecode()
             }
+        }
+    }
+
+    private val decoderSettingsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+
         }
     }
 
@@ -431,16 +478,16 @@ class BarcodeService : Service() {
         }
     }
 
-    private fun startDecode() {
+    private fun startDecode(isSDK: Boolean = false) {
         if (!settings.decoderEnable || !isScreenOn() || isScreenLocked()) return
 
         if (settings.continuousDecode) {
-            continuousDecodeState = if (continuousDecodeState == ContinuousDecodeState.Stop) {
+            if (continuousDecodeState == ContinuousDecodeState.Stop) {
+                continuousDecodeState = ContinuousDecodeState.Start
                 decoderManager.startDecode()
-                ContinuousDecodeState.Start
-            } else {
+            } else if (!isSDK) {
+                continuousDecodeState = ContinuousDecodeState.Stop
                 decoderManager.cancelDecode()
-                ContinuousDecodeState.Stop
             }
         } else {
             decoderManager.startDecode()
@@ -453,7 +500,6 @@ class BarcodeService : Service() {
             continuousDecodeState = ContinuousDecodeState.Stop
         }
     }
-
 
     private fun playSound() {
         soundPool.play(scannerSoundId, 1.0f, 1.0f, 1, 0, 1.0f)
@@ -473,42 +519,36 @@ class BarcodeService : Service() {
     @Subscribe(threadMode = ThreadMode.POSTING, sticky = true)
     fun onEventMessage(event: MessageEvent) {
         when (event.message) {
-            //Message.UpdateCode -> {
-            //    val codeDetailsList = arrayListOf(event.arg1 as CodeDetails)
-            //    codeDetailsList.update(appDatabase)
-            //    decoderManager.updateCode(codeDetailsList)
-            //}
-
-            Message.RestoreSettings -> {
-                val gson = Gson()
-
-                gson.fromJson(
-                    prefs.getString("settings_backup", ""),
-                    Settings::class.java
-                )?.update(appDatabase)
-                gson.fromJson<List<CodeDetails>>(
-                    prefs.getString("codes_backup", ""),
-                    object : TypeToken<List<CodeDetails>>() {}.type
-                )?.let {
-                    it.update(appDatabase)
-                    decoderManager.updateCode(it)
-                }
-            }
-
-            Message.CloseDecoder -> {
-                decoderManager.close()
-            }
-
-            Message.StartDecode -> {
-                startDecode()
-            }
+            Message.RestoreSettings -> restoreSettings()
+            Message.CloseDecoder -> decoderManager.close()
+            Message.StartDecode -> startDecode()
         }
         EventBus.getDefault().removeStickyEvent(event)
     }
 
-    companion object {
-        const val ACTION_SCANNER_KEYCODE = "action.scanner.keycode"
-        const val ACTION_SCANNER_CONTROL = "action.scanner.control"
+    private fun restoreSettings() {
+        val gson = Gson()
+
+        gson.fromJson<List<CodeDetails>>(
+            prefs.getString("codes_backup", ""),
+            object : TypeToken<List<CodeDetails>>() {}.type
+        )?.let {
+            if (it != codeDetailsList) {
+                cancelCodesFlow()
+                it.update(appDatabase)
+                runBlocking {
+                    delay(500)
+                    observeCodesFlow()
+                }
+            }
+        }
+
+        gson.fromJson(
+            prefs.getString("settings_backup", ""),
+            Settings::class.java
+        )?.let {
+            if (it != settings) it.update(appDatabase)
+        }
     }
 
     enum class ContinuousDecodeState {

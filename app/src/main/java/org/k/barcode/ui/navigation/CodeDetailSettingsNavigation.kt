@@ -24,7 +24,7 @@ fun NavGraphBuilder.codeDetailSettingsScreen(
         })
     ) {
         runBlocking {
-            databaseRepository.getCodeDetail(it.arguments?.getInt("uid")!!)
+            databaseRepository.getCode(it.arguments?.getInt("uid")!!)
         }.also { codeDetail ->
             CodeDetailScreen(
                 paddingValues,
