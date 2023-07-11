@@ -16,7 +16,7 @@ import org.k.barcode.model.CodeDetails
 
 class NlsDecoder constructor(private val context: Context) :
     BarcodeDecoder {
-    private var softEngine: SoftEngine? = null
+    private var softEngine: SoftEngine = SoftEngine.getInstance()
     private var startTime = 0L
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -51,43 +51,40 @@ class NlsDecoder constructor(private val context: Context) :
                 }
                 0
             }
-        softEngine?.setScanningCallback(callback)
+        softEngine.setScanningCallback(callback)
         awaitClose {
 
         }
     }.shareIn(GlobalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
 
     init {
-        softEngine = SoftEngine.getInstance()
-        softEngine?.setNdkSystemLanguage(0)
+        softEngine.setNdkSystemLanguage(0)
     }
 
     override fun init(): Boolean {
-        val result = softEngine?.initSoftEngine(
+        val result = softEngine.initSoftEngine(
             context.getDir(
                 "nls_data",
                 Context.MODE_PRIVATE
             ).absolutePath
         )
-        if (result == true) {
-            softEngine?.Open()
-            return true
-        }
-        return false
+        if (!result) return false
+
+        return softEngine.Open()
     }
 
     override fun deInit() {
-        softEngine?.Close()
-        softEngine?.Deinit()
+        softEngine.Close()
+        softEngine.Deinit()
     }
 
     override fun startDecode() {
         startTime = System.currentTimeMillis()
-        softEngine?.StartDecode()
+        softEngine.StartDecode()
     }
 
     override fun cancelDecode() {
-        softEngine?.StopDecode()
+        softEngine.StopDecode()
     }
 
     override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
@@ -99,58 +96,35 @@ class NlsDecoder constructor(private val context: Context) :
     override fun updateCode(codeDetails: List<CodeDetails>) {
         codeDetails.forEach {
             when (it.name) {
-                Code.Code128.aliasName -> {
-                    minMaxLength("CODE128", it)
-                }
-
-                Code.Code11.aliasName -> {
-                    lct("CODE11", it)
+                Code.DotCode.aliasName -> set("DOTCODE", "Enable", enable(it.enable))
+                Code.EAN8.aliasName -> elanCode("EAN8", it)
+                Code.EAN13.aliasName -> elanCode("EAN13", it)
+                Code.UPC_A.aliasName -> upcCode("UPCA", it)
+                Code.UPC_E.aliasName -> upcCode("UPCE", it)
+                Code.Code11.aliasName -> lct("CODE11", it)
+                Code.Matrix25.aliasName -> lct("MATRIX25", it)
+                Code.Code128.aliasName -> minMaxLength("CODE128", it)
+                Code.Code49.aliasName -> minMaxLength("CODE49", it)
+                Code.Code93.aliasName -> minMaxLength("CODE93", it)
+                Code.Aztec.aliasName -> minMaxLength("AZTEC", it)
+                Code.MaxiCode.aliasName -> minMaxLength("MAXIC", it)
+                Code.MicroPDF.aliasName -> minMaxLength("MICROPDF", it)
+                Code.PDF417.aliasName -> minMaxLength("PDF417", it)
+                Code.DataMatrix.aliasName -> minMaxLength("DM", it)
+                Code.QR.aliasName -> minMaxLength("QR", it)
+                Code.HanXin.aliasName -> minMaxLength("CSC", it)
+                Code.GridMatrix.aliasName -> minMaxLength("GM", it)
+                Code.UCC_EAN128.aliasName -> minMaxLength("UCCEAN128", it)
+                Code.CodaBar.aliasName -> {
+                    minMaxLength("CODEBAR", it)
+                    if (it.enable)
+                        set("CODEBAR", "TrsmtStasrtStop", enable(it.startStopCharacters))
                 }
 
                 Code.Code39.aliasName -> {
                     lct("CODE39", it)
-                    set("CODE39", "FullAscii", enable(it.fullAscii))
-                }
-
-                Code.Code93.aliasName -> {
-                    minMaxLength("CODE93", it)
-                }
-
-                Code.DotCode.aliasName -> {
-                    set("DOTCODE", "Enable", enable(it.enable))
-                }
-
-                Code.EAN8.aliasName -> {
-                    elanCode("EAN8", it)
-                }
-
-                Code.EAN13.aliasName -> {
-                    elanCode("EAN13", it)
-                }
-
-                Code.UPC_A.aliasName -> {
-                    upcCode("UPCA", it)
-                }
-
-                Code.UPC_E.aliasName -> {
-                    upcCode("UPCE", it)
-                }
-
-                Code.Aztec.aliasName -> {
-                    minMaxLength("AZTEC", it)
-                }
-
-                Code.CodaBar.aliasName -> {
-                    minMaxLength("CODEBAR", it)
-                    set("CODEBAR", "TrsmtStasrtStop", enable(it.startStopCharacters))
-                }
-
-                Code.CodaBlock.aliasName -> {
-
-                }
-
-                Code.GridMatrix.aliasName -> {
-                    minMaxLength("GM", it)
+                    if (it.enable)
+                        set("CODE39", "FullAscii", enable(it.fullAscii))
                 }
 
                 Code.INT25.aliasName -> {
@@ -162,55 +136,44 @@ class NlsDecoder constructor(private val context: Context) :
                     transmitCheckDigit("ITF14", it.transmitCheckDigit)
                 }
 
-                Code.HanXin.aliasName -> {
-                    minMaxLength("CSC", it)
+                Code.ISBN.aliasName -> {
+                    set("ISBN", "Enable", enable(it.enable))
+                    if (it.enable) {
+                        set("ISBN", "Digit2", enable(it.supplemental2))
+                        set("ISBN", "Digit5", enable(it.supplemental5))
+                    }
+                }
+
+                Code.Composite.aliasName -> {
+                    set("COMPOSITE", "Enable", enable(it.enable))
                 }
 
                 Code.MSI.aliasName -> {
                     lct("MSIPLSY", it)
+                    if (it.enable)
+                        set("MSIPLSY", "ChkMode", it.algorithm.toString())
                 }
-
-                Code.MaxiCode.aliasName -> {
-                    minMaxLength("MAXIC", it)
-                }
-
-                Code.MicroPDF.aliasName -> {
-                    minMaxLength("MICROPDF", it)
-                }
-
-                Code.Matrix25.aliasName -> {
-                    lct("MATRIX25", it)
-                }
-
-                Code.Telepen.aliasName -> {
-
-                }
-
-                Code.QR.aliasName -> {
-                    minMaxLength("QR", it)
-                }
-
-                Code.PDF417.aliasName -> {
-                    minMaxLength("PDF417", it)
-                }
-
-                Code.DataMatrix.aliasName -> {
-                    minMaxLength("DM", it)
+                Code.RSS.aliasName -> set("RSS", "Enable", enable(it.enable))
+                Code.AustraliaPost.aliasName -> set("AUSPOST", "Enable", enable(it.enable))
+                Code.ChinaPost.aliasName -> lct("CHNPOST", it)
+                Code.JapanesePost.aliasName -> {
+                    set("JAPANPOST", "Enable", enable(it.enable))
+                    transmitCheckDigit("JAPANPOST", it.transmitCheckDigit)
                 }
             }
         }
     }
 
     override fun light(enable: Boolean) {
-        softEngine?.illuminationEnable = if (enable) 1 else 0
+        softEngine.illuminationEnable = if (enable) 1 else 0
     }
 
     override fun timeout(timeout: Int) {
-        softEngine?.setScanTimeout(timeout)
+        softEngine.setScanTimeout(timeout)
     }
 
     private fun set(codeName: String, params: String, value: String) {
-        softEngine?.ScanSet(codeName, params, value)
+        softEngine.ScanSet(codeName, params, value)
     }
 
     private fun enable(value: Boolean) = if (value) "1" else "0"
@@ -221,43 +184,51 @@ class NlsDecoder constructor(private val context: Context) :
 
     private fun elanCode(codeName: String, codeDetails: CodeDetails) {
         set(codeName, "Enable", enable(codeDetails.enable))
-        transmitCheckDigit(codeName, codeDetails.transmitCheckDigit)
-        set(codeName, "Digit2", enable(codeDetails.supplemental2))
-        set(codeName, "Digit5", enable(codeDetails.supplemental2))
+        if (codeDetails.enable) {
+            transmitCheckDigit(codeName, codeDetails.transmitCheckDigit)
+            set(codeName, "Digit2", enable(codeDetails.supplemental2))
+            set(codeName, "Digit5", enable(codeDetails.supplemental5))
+        }
     }
 
     private fun upcCode(codeName: String, codeDetails: CodeDetails) {
         elanCode(codeName, codeDetails)
-        when (codeDetails.upcPreamble) {
-            0 -> {
-                set(codeName, "SysData", "0")
-                set(codeName, "UsSysData", "0")
-                set(codeName, "OnlyData", "1")
-            }
+        if (codeDetails.enable) {
+            when (codeDetails.upcPreamble) {
+                0 -> {
+                    set(codeName, "SysData", "0")
+                    set(codeName, "UsSysData", "0")
+                    set(codeName, "OnlyData", "1")
+                }
 
-            1 -> {
-                set(codeName, "SysData", "1")
-                set(codeName, "UsSysData", "0")
-                set(codeName, "OnlyData", "0")
-            }
+                1 -> {
+                    set(codeName, "SysData", "1")
+                    set(codeName, "UsSysData", "0")
+                    set(codeName, "OnlyData", "0")
+                }
 
-            else -> {
-                set(codeName, "SysData", "0")
-                set(codeName, "UsSysData", "1")
-                set(codeName, "OnlyData", "0")
+                else -> {
+                    set(codeName, "SysData", "0")
+                    set(codeName, "UsSysData", "1")
+                    set(codeName, "OnlyData", "0")
+                }
             }
         }
     }
 
     private fun minMaxLength(codeName: String, codeDetails: CodeDetails) {
         set(codeName, "Enable", enable(codeDetails.enable))
-        set(codeName, "Minlen", codeDetails.minLength.toString())
-        set(codeName, "Maxlen", codeDetails.maxLength.toString())
+        if (codeDetails.enable) {
+            set(codeName, "Minlen", codeDetails.minLength.toString())
+            set(codeName, "Maxlen", codeDetails.maxLength.toString())
+        }
     }
 
     private fun lct(codeName: String, codeDetails: CodeDetails) {
         minMaxLength(codeName, codeDetails)
-        set(codeName, "Check", enable(codeDetails.checkDigit))
-        transmitCheckDigit(codeName, codeDetails.transmitCheckDigit)
+        if (codeDetails.enable) {
+            set(codeName, "Check", enable(codeDetails.checkDigit))
+            transmitCheckDigit(codeName, codeDetails.transmitCheckDigit)
+        }
     }
 }

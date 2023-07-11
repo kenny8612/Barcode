@@ -9,10 +9,14 @@ enum class Code(val aliasName: String) {
     Code11("CODE 11"),
     Code39("CODE 39"),
     Code93("CODE 93"),
+    Code49("CODE 49"),
     Code128("CODE 128"),
+    UCC_EAN128("UCC/EAN128"),
     INT25("Interleaved 2 of 5"),
     Matrix25("Matrix 2 of 5"),
+    ISBN("ISBN"),
     MSI("MSI"),
+    RSS("RSS"),
     Telepen("Telepen"),
     GridMatrix("Grid Matrix"),
     DotCode("DotCode"),
@@ -23,5 +27,9 @@ enum class Code(val aliasName: String) {
     PDF417("PDF417"),
     Aztec("Aztec"),
     HanXin("Han Xin"),
-    DataMatrix("Data Matrix")
+    DataMatrix("Data Matrix"),
+    Composite("Composite"),
+    AustraliaPost("Australia Post"),
+    ChinaPost("China Post"),
+    JapanesePost("Japanese Post")
 }

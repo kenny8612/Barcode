@@ -22,14 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.k.barcode.R
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.model.Settings
-import org.k.barcode.utils.DatabaseUtils.update
+import org.k.barcode.utils.DatabaseUtils.send
 
 @Composable
 fun BroadcastSettingsScreen(
     paddingValues: PaddingValues,
-    appDatabase: AppDatabase,
     settings: Settings,
     onSave: () -> Unit
 ) {
@@ -67,11 +65,11 @@ fun BroadcastSettingsScreen(
             data = broadcastDecodeData
         )
         BroadcastEditView(
-            label = stringResource(id = R.string.action_decode_data_extra_byte),
+            label = stringResource(id = R.string.extra_decode_data_byte),
             data = broadcastDecodeDataByte
         )
         BroadcastEditView(
-            label = stringResource(id = R.string.action_decode_data_extra_string),
+            label = stringResource(id = R.string.extra_decode_data_string),
             data = broadcastDecodeDataString
         )
         Spacer(modifier = Modifier.weight(1f))
@@ -88,7 +86,7 @@ fun BroadcastSettingsScreen(
                         broadcastDecodeData = broadcastDecodeData.value,
                         broadcastDecodeDataByte = broadcastDecodeDataByte.value,
                         broadcastDecodeDataString = broadcastDecodeDataString.value
-                    ).update(appDatabase)
+                    ).send()
                     onSave.invoke()
                 }
             },

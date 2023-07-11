@@ -1,7 +1,7 @@
 package org.k.barcode.decoder
 
 enum class DecodeMode {
-    Focus,
+    InputBox,
     Broadcast,
     Simulate,
     Clipboard

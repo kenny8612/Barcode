@@ -56,3 +56,20 @@
 
 -keep class org.k.barcode.** { *; }
 -keep class com.dawn.decoderapijni.** { *; }
+
+##---------------Begin: proguard configuration for greenrobot ----------
+-dontwarn com.orhanobut.logger.**
+-keep class com.orhanobut.logger.**{*;}
+-keep interface com.orhanobut.logger.**{*;}
+
+-keepattributes *Annotation*
+-keepclassmembers class ** {
+    @org.greenrobot.eventbus.Subscribe <methods>;
+}
+-keep enum org.greenrobot.eventbus.ThreadMode { *; }
+
+# Only required if you use AsyncExecutor
+-keepclassmembers class * extends org.greenrobot.eventbus.util.ThrowableFailureEvent {
+    <init>(java.lang.Throwable);
+}
+##---------------End: proguard configuration for greenrobot  ----------

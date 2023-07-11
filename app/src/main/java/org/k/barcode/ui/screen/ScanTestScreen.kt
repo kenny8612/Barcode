@@ -22,9 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -46,10 +46,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
 import org.k.barcode.decoder.DecoderEvent
+import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.Settings
 import org.k.barcode.ui.viewmodel.ScanTestViewModel
 import org.k.barcode.utils.BarcodeInfoUtils.transformData
 import kotlin.random.Random
@@ -57,12 +57,14 @@ import kotlin.random.Random
 @Composable
 fun ScanTestScreen(
     paddingValues: PaddingValues,
-    scanTestViewModel: ScanTestViewModel
+    scanTestViewModel: ScanTestViewModel,
+    decoderManager: DecoderManager,
+    onNavigateToCodeSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val clipboardManager = LocalClipboardManager.current
-    val decoderEvent by scanTestViewModel.decoderEvent.observeAsState(initial = DecoderEvent.Closed)
-    val settings by scanTestViewModel.settings.observeAsState(initial = Settings())
+    val decoderEvent by scanTestViewModel.decoderEvent.collectAsState()
+    val settings by scanTestViewModel.settings.collectAsState()
 
     Column(
         modifier = Modifier
@@ -71,7 +73,6 @@ fun ScanTestScreen(
     ) {
         Card(
             modifier = Modifier.padding(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             Row(
@@ -81,21 +82,37 @@ fun ScanTestScreen(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (decoderManager.supportCode() &&
+                    decoderEvent != DecoderEvent.Error
+                ) {
+                    IconButton(
+                        onClick = {
+                            onNavigateToCodeSettings.invoke()
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_code_settings),
+                            contentDescription = null
+                        )
+                    }
+                }
                 IconButton(
                     onClick = {
-                        scanTestViewModel.barcodeList.clear()
-                        scanTestViewModel.barcodeInfo.value = BarcodeInfo()
-                    },
-                    enabled = scanTestViewModel.barcodeList.isNotEmpty()
+                        if (scanTestViewModel.barcodeList.isNotEmpty()) {
+                            scanTestViewModel.barcodeList.clear()
+                            scanTestViewModel.barcodeInfo.value = BarcodeInfo()
+                        }
+                    }
                 ) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = null)
                 }
                 IconButton(
                     onClick = {
-                        val content = scanTestViewModel.barcodeList.joinToString("\n")
-                        clipboardManager.setText(AnnotatedString(content))
-                    },
-                    enabled = scanTestViewModel.barcodeList.isNotEmpty()
+                        if (scanTestViewModel.barcodeList.isNotEmpty()) {
+                            val content = scanTestViewModel.barcodeList.joinToString("\n")
+                            clipboardManager.setText(AnnotatedString(content))
+                        }
+                    }
                 ) {
                     Icon(painter = painterResource(id = R.drawable.ic_content_copy), null)
                 }
@@ -119,8 +136,8 @@ fun ScanTestScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
                 scanTestViewModel.barcode.removeObservers(lifecycleOwner)
-                scanTestViewModel.reset()
             } else if (event == Lifecycle.Event.ON_RESUME) {
+                scanTestViewModel.reset()
                 scanTestViewModel.barcode.observe(lifecycleOwner) {
                     it.transformData(settings)?.let { data ->
                         scanTestViewModel.barcodeList.add(data)
@@ -232,7 +249,7 @@ fun Scan(decoderEvent: DecoderEvent, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(75.dp)
             .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
-        enabled = decoderEvent != DecoderEvent.Error && decoderEvent != DecoderEvent.Closed
+        enabled = decoderEvent == DecoderEvent.Opened
     ) {
         Text(
             text = stringResource(id = R.string.scan),

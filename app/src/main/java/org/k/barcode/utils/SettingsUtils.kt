@@ -9,11 +9,11 @@ object SettingsUtils {
         val modeList = context.resources.getStringArray(R.array.decoder_mode_entries)
         for ((index, value) in modeList.withIndex()) {
             if (value == modeString) {
-                val mode = context.resources.getStringArray(R.array.scan_mode_values)[index]
+                val mode = context.resources.getStringArray(R.array.decoder_mode_values)[index]
                 return DecodeMode.values()[mode.toInt()]
             }
         }
-        return DecodeMode.Focus
+        return DecodeMode.InputBox
     }
 
     fun formatKeycode(context: Context, keyString: String): Int {

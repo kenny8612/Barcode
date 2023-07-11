@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.hardware.camera2.CameraManager
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
@@ -41,10 +42,6 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.k.barcode.AppContent.Companion.TAG
-import org.k.barcode.Constant.ACTION_SCANNER_KEYCODE
-import org.k.barcode.Constant.BARCODE_CHANNEL_ID
-import org.k.barcode.Constant.DEFAULT_DECODE_TIMEOUT
-import org.k.barcode.Constant.NOTIFICATION_ID
 import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.data.DecoderRepository
@@ -114,6 +111,11 @@ class BarcodeService : Service() {
     private var lowPowerConsumptionWorkUUID: UUID? = null
     private var decoderDelayOpenJob: Job? = null
 
+    private var screenState = true
+    private var cameraState = false
+
+    private var numberOfCameras = 0
+
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
@@ -128,10 +130,12 @@ class BarcodeService : Service() {
         soundPool = builder.build()
         scannerSoundId = soundPool.load(this, R.raw.scan_buzzer, 1)
 
+        val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        numberOfCameras = cameraManager.cameraIdList.size
+
         setupNotification()
         loadSettingsData()
         backupSettingsData()
-
         settings.decoderEnable = false
 
         observeDecoderEventFlow()
@@ -144,8 +148,13 @@ class BarcodeService : Service() {
         intentFilter.addAction(Intent.ACTION_USER_PRESENT)
         registerReceiver(screenReceiver, intentFilter)
 
+        registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
+
+        registerDecodeReceiver(settings)
+        if (decoderManager.supportCode())
+            registerReceiver(cameraStateReceiver, IntentFilter(ACTION_CAMERA_STATUS))
         /** for sdk **/
-        //registerReceiver(decoderSettingsReceiver, IntentFilter(ACTION_SCANNER_SETTINGS))
+        registerReceiver(decoderSettingsReceiver, IntentFilter(ACTION_SCANNER_SETTINGS))
 
         EventBus.getDefault().register(this)
         Log.d(TAG, "barcode service start")
@@ -157,11 +166,16 @@ class BarcodeService : Service() {
         notificationManager.cancelAll()
         notificationManager.deleteNotificationChannel(BARCODE_CHANNEL_ID)
 
-        unregisterReceiver(screenReceiver)
-        unregisterDecodeReceiver()
-        cancelSettingsDataFlow()
-        cancelCodesFlow()
         cancelDecoderEventFlow()
+        cancelCodesFlow()
+        cancelSettingsDataFlow()
+        unregisterReceiver(screenReceiver)
+        unregisterReceiver(scannerKeyReceiver)
+
+        unregisterDecodeReceiver()
+        if (decoderManager.supportCode())
+            unregisterReceiver(cameraStateReceiver)
+        unregisterReceiver(decoderSettingsReceiver)
         EventBus.getDefault().unregister(this)
         Log.d(TAG, "barcode service stop")
     }
@@ -170,11 +184,11 @@ class BarcodeService : Service() {
         val intentFilter = IntentFilter()
         intentFilter.addAction(settings.broadcastStartDecode)
         intentFilter.addAction(settings.broadcastStopDecode)
-        registerReceiver(decoderReceiver, intentFilter)
+        registerReceiver(decodeReceiver, intentFilter)
     }
 
     private fun unregisterDecodeReceiver() {
-        unregisterReceiver(decoderReceiver)
+        unregisterReceiver(decodeReceiver)
     }
 
     private fun setupNotification() {
@@ -237,29 +251,25 @@ class BarcodeService : Service() {
             if (it.decoderEnable != settings.decoderEnable) {
                 if (it.decoderEnable) {
                     decoderManager.open()
-                    registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
-                    registerDecodeReceiver(it)
                 } else {
                     decoderManager.cancelDecode()
                     decoderManager.close()
-                    unregisterReceiver(scannerKeyReceiver)
-                    unregisterDecodeReceiver()
                 }
             }
-            if (it.decoderLight != settings.decoderLight)
-                decoderManager.setLight(it.decoderLight)
-
             if (it.continuousDecode != settings.continuousDecode) {
                 if (!it.continuousDecode)
                     continuousDecodeState = ContinuousDecodeState.Stop
             }
+            if (settings.decoderEnable) {
+                if (it.decoderLight != settings.decoderLight)
+                    decoderManager.setLight(it.decoderLight)
 
-            if (settings.decoderEnable &&
-                (it.broadcastStartDecode != settings.broadcastStartDecode ||
-                        it.broadcastStopDecode != settings.broadcastStopDecode)
-            ) {
-                unregisterDecodeReceiver()
-                registerDecodeReceiver(it)
+                if (it.broadcastStartDecode != settings.broadcastStartDecode ||
+                    it.broadcastStopDecode != settings.broadcastStopDecode
+                ) {
+                    unregisterDecodeReceiver()
+                    registerDecodeReceiver(it)
+                }
             }
             settings = it
         }.launchIn(CoroutineScope(Dispatchers.IO))
@@ -296,7 +306,7 @@ class BarcodeService : Service() {
             .onEach {
                 when (it) {
                     DecoderEvent.Opened -> {
-                        println("decoder opened")
+                        Log.d(TAG, "decoder opened")
                         decoderManager.updateCode(codeDetailsList)
                         decoderManager.setLight(settings.decoderLight)
                         decoderManager.setDecodeTimeout(DEFAULT_DECODE_TIMEOUT)
@@ -305,16 +315,18 @@ class BarcodeService : Service() {
                     }
 
                     DecoderEvent.Closed -> {
-                        println("decoder closed")
+                        Log.d(TAG, "decoder closed")
                         cancelBarcodeFlows()
                         continuousDecodeState = ContinuousDecodeState.Stop
                         updateNotification(serviceStart = false)
                     }
 
                     DecoderEvent.Error -> {
-                        println("decoder error")
-                        settings.decoderEnable = false
-                        settings.update(appDatabase)
+                        Log.d(TAG, "decoder error")
+                        if (settings.decoderEnable) {
+                            settings.decoderEnable = false
+                            settings.update(appDatabase)
+                        }
                     }
                 }
             }.launchIn(CoroutineScope(Dispatchers.IO))
@@ -372,7 +384,7 @@ class BarcodeService : Service() {
             vibrate()
 
         when (settings.decoderMode) {
-            DecodeMode.Focus -> barcodeInfo.injectInputBox(this, settings)
+            DecodeMode.InputBox -> barcodeInfo.injectInputBox(this, settings)
             DecodeMode.Broadcast -> barcodeInfo.broadcast(this, settings)
             DecodeMode.Simulate -> barcodeInfo.simulate(this, settings)
             DecodeMode.Clipboard -> barcodeInfo.clipboard(this)
@@ -400,12 +412,14 @@ class BarcodeService : Service() {
 
             when (intent?.action) {
                 Intent.ACTION_SCREEN_ON -> {
+                    screenState = true
                     exitLowPowerConsumption()
                     if (!isScreenLocked())
                         openDecoderDelayJob()
                 }
 
                 Intent.ACTION_SCREEN_OFF -> {
+                    screenState = false
                     cancelOpenDecoderDelayJob()
                     enterLowPowerConsumption()
                 }
@@ -417,7 +431,7 @@ class BarcodeService : Service() {
         }
     }
 
-    private val decoderReceiver = object : BroadcastReceiver() {
+    private val decodeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (settings.broadcastStartDecode == intent?.action) {
                 startDecode(isSDK = true)
@@ -429,7 +443,33 @@ class BarcodeService : Service() {
 
     private val decoderSettingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            if (ACTION_SCANNER_SETTINGS == intent?.action) {
+                if (intent.hasExtra("out_mode")) {
+                    val mode = intent.getIntExtra("out_mode", 0)
+                    if (mode != settings.decoderMode.ordinal)
+                        settings.copy(decoderMode = DecodeMode.values()[mode]).update(appDatabase)
+                }
+            }
+        }
+    }
 
+    private val cameraStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (!settings.decoderEnable) return
+
+            if (ACTION_CAMERA_STATUS == intent?.action) {
+                cameraState = intent.getBooleanExtra("state", false)
+                val cameraId = intent.getStringExtra("cameraId")?.toInt()
+                if (cameraId != numberOfCameras - 1) {
+                    if (cameraState) {
+                        cancelOpenDecoderDelayJob()
+                        decoderManager.cancelDecode()
+                        decoderManager.close()
+                    } else {
+                        openDecoderDelayJob()
+                    }
+                }
+            }
         }
     }
 
@@ -439,8 +479,8 @@ class BarcodeService : Service() {
 
         decoderDelayOpenJob = GlobalScope.launch {
             delay(1000)
-            //camera not open
-            decoderManager.open()
+            if (!cameraState && screenState)
+                decoderManager.open()
         }
     }
 
@@ -455,7 +495,7 @@ class BarcodeService : Service() {
     private fun enterLowPowerConsumption() {
         if (lowPowerConsumptionWorkUUID == null) {
             val request = OneTimeWorkRequest.Builder(LowPowerConsumptionWork::class.java)
-                .setInitialDelay(5, TimeUnit.SECONDS).build()
+                .setInitialDelay(1, TimeUnit.MINUTES).build()
             lowPowerConsumptionWorkUUID = request.id
             WorkManager.getInstance(this).enqueue(request)
         }
@@ -519,6 +559,8 @@ class BarcodeService : Service() {
     @Subscribe(threadMode = ThreadMode.POSTING, sticky = true)
     fun onEventMessage(event: MessageEvent) {
         when (event.message) {
+            Message.UpdateSettings -> (event.arg1 as Settings).update(appDatabase)
+            Message.UpdateCode -> (event.arg1 as CodeDetails).update(appDatabase)
             Message.RestoreSettings -> restoreSettings()
             Message.CloseDecoder -> decoderManager.close()
             Message.StartDecode -> startDecode()
@@ -549,6 +591,16 @@ class BarcodeService : Service() {
         )?.let {
             if (it != settings) it.update(appDatabase)
         }
+    }
+
+    companion object {
+        const val BARCODE_CHANNEL_ID = "BARCODE_CHANNEL_ID"
+        const val NOTIFICATION_ID = 1
+        const val DEFAULT_DECODE_TIMEOUT = 5000
+
+        const val ACTION_SCANNER_KEYCODE = "action.scanner.keycode"
+        const val ACTION_SCANNER_SETTINGS = "action.scanner.settings"
+        const val ACTION_CAMERA_STATUS = "com.action.camera.status"
     }
 
     enum class ContinuousDecodeState {

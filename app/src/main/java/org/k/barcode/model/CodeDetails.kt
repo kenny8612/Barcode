@@ -18,5 +18,7 @@ data class CodeDetails(
     @ColumnInfo(name = "startStopCharacters") var startStopCharacters: Boolean,
     @ColumnInfo(name = "fullAscii") var fullAscii: Boolean,
     @ColumnInfo(name = "minLength") var minLength: Int,
-    @ColumnInfo(name = "maxLength") var maxLength: Int
+    @ColumnInfo(name = "maxLength") var maxLength: Int,
+    @ColumnInfo(name = "algorithm") var algorithm: Int,
+    @ColumnInfo(name = "supportDetails") var supportDetails: Boolean
 )

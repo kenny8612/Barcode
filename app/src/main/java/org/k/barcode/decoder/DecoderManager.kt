@@ -7,6 +7,9 @@ import android.util.Log
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.model.CodeDetails
@@ -16,11 +19,12 @@ class DecoderManager private constructor(
 ) {
     private var state = DecoderState.Closed
 
-    private var decoderEventListeners: MutableList<DecoderEventListener> = ArrayList()
-
     private val backgroundThread = HandlerThread("barcode_handler")
 
     private var barcodeDataJob: Job? = null
+
+    private val _event = MutableStateFlow(DecoderEvent.Closed)
+    private val event: StateFlow<DecoderEvent> = _event.asStateFlow()
 
     init {
         backgroundThread.start()
@@ -46,36 +50,29 @@ class DecoderManager private constructor(
             when (msg.what) {
                 MSG_OPEN -> {
                     if (state == DecoderState.Closed) {
-                        Log.d(TAG, "open barcode decoder")
+                        Log.d(TAG, "opening barcode decoder")
                         if (barcodeDecoder.init()) {
                             observeBarcodeDataFlow()
                             state = DecoderState.Idle
-                        }
-                        val decoderEvent = if (state == DecoderState.Closed) DecoderEvent.Error
-                        else DecoderEvent.Opened
-                        synchronized(decoderEventListeners) {
-                            for (listener in decoderEventListeners)
-                                listener.onEvent(decoderEvent)
+                            _event.value = DecoderEvent.Opened
+                        } else {
+                            _event.value = DecoderEvent.Error
                         }
                     }
                 }
 
                 MSG_CLOSE -> {
                     if (state != DecoderState.Closed) {
-                        Log.d(TAG, "close barcode decoder")
+                        Log.d(TAG, "closing barcode decoder")
                         cancelBarcodeDataFlow()
                         barcodeDecoder.deInit()
                         state = DecoderState.Closed
-                        synchronized(decoderEventListeners) {
-                            for (listener in decoderEventListeners)
-                                listener.onEvent(DecoderEvent.Closed)
-                        }
+                        _event.value = DecoderEvent.Closed
                     }
                 }
 
                 MSG_START_DECODE -> {
                     if (state == DecoderState.Idle) {
-                        Log.d(TAG, "start decode")
                         state = DecoderState.Decoding
                         barcodeDecoder.startDecode()
                     }
@@ -115,19 +112,6 @@ class DecoderManager private constructor(
         }
     }
 
-    fun addEventListener(decoderEventListener: DecoderEventListener) {
-        synchronized(decoderEventListeners) {
-            if (!decoderEventListeners.contains(decoderEventListener))
-                decoderEventListeners.add(decoderEventListener)
-        }
-    }
-
-    fun removeEventListener(decoderEventListener: DecoderEventListener) {
-        synchronized(decoderEventListeners) {
-            decoderEventListeners.remove(decoderEventListener)
-        }
-    }
-
     fun open() {
         workHandler.obtainMessage(MSG_OPEN).sendToTarget()
     }
@@ -148,12 +132,6 @@ class DecoderManager private constructor(
         workHandler.obtainMessage(MSG_UPDATE_CODES, codeDetails).sendToTarget()
     }
 
-    fun supportLight() = barcodeDecoder.supportLight()
-
-    fun supportCode() = barcodeDecoder.supportCode()
-
-    fun getBarcodeFlow() = barcodeDecoder.getBarcodeFlow()
-
     fun setLight(enable: Boolean) {
         workHandler.obtainMessage(MSG_DECODER_LIGHT, enable).sendToTarget()
     }
@@ -161,6 +139,14 @@ class DecoderManager private constructor(
     fun setDecodeTimeout(timeout: Int) {
         workHandler.obtainMessage(MSG_DECODE_TIMEOUT, timeout).sendToTarget()
     }
+
+    fun supportLight() = barcodeDecoder.supportLight()
+
+    fun supportCode() = barcodeDecoder.supportCode()
+
+    fun getBarcodeFlow() = barcodeDecoder.getBarcodeFlow()
+
+    fun getEventFlow() = event
 
     companion object {
         private var instance: DecoderManager? = null

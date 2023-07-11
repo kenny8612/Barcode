@@ -41,8 +41,8 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import org.k.barcode.BarcodeService
 import org.k.barcode.R
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
+import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.theme.BarcodeTheme
 import org.k.barcode.ui.viewmodel.SettingsViewModel
@@ -54,9 +54,8 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var databaseRepository: DatabaseRepository
-
     @Inject
-    lateinit var appDatabase: AppDatabase
+    lateinit var decoderManager: DecoderManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     codeSettingsViewModel = codeSettingsViewModel,
                     settingsViewModel = settingsViewModel,
                     databaseRepository = databaseRepository,
-                    appDatabase = appDatabase
+                    decoderManager = decoderManager
                 )
             }
         }
@@ -105,7 +104,7 @@ fun MainUI(
     codeSettingsViewModel: CodeSettingsViewModel,
     settingsViewModel: SettingsViewModel,
     databaseRepository: DatabaseRepository,
-    appDatabase: AppDatabase
+    decoderManager: DecoderManager
 ) {
     val navHostController = rememberNavController()
     var settingsUI by remember { mutableStateOf(false) }
@@ -157,7 +156,7 @@ fun MainUI(
                 codeSettingsViewModel = codeSettingsViewModel,
                 settingsViewModel = settingsViewModel,
                 databaseRepository = databaseRepository,
-                appDatabase = appDatabase
+                decoderManager = decoderManager
             )
         },
         snackbarHost = {

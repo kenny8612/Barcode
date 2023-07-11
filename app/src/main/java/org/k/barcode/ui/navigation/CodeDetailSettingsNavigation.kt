@@ -6,7 +6,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import kotlinx.coroutines.runBlocking
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.ui.screen.CodeDetailScreen
 import org.k.barcode.ui.screen.Screen
@@ -14,7 +13,6 @@ import org.k.barcode.ui.screen.Screen
 fun NavGraphBuilder.codeDetailSettingsScreen(
     paddingValues: PaddingValues,
     databaseRepository: DatabaseRepository,
-    appDatabase: AppDatabase,
     onSave: () -> Unit
 ) {
     composable(
@@ -29,7 +27,6 @@ fun NavGraphBuilder.codeDetailSettingsScreen(
             CodeDetailScreen(
                 paddingValues,
                 codeDetail,
-                appDatabase,
                 onSave
             )
         }

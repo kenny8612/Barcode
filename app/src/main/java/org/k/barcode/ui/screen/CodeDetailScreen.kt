@@ -31,19 +31,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.k.barcode.R
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.decoder.Code
 import org.k.barcode.model.CodeDetails
-import org.k.barcode.utils.DatabaseUtils.update
+import org.k.barcode.utils.DatabaseUtils.send
 
 @Composable
 fun CodeDetailScreen(
     paddingValues: PaddingValues,
     codeDetails: CodeDetails,
-    appDatabase: AppDatabase,
     onSave: () -> Unit
 ) {
-    val value by remember { mutableStateOf(codeDetails) }
+    //val value by remember { mutableStateOf(codeDetails) }
 
     Column(
         modifier = Modifier.padding(
@@ -62,22 +60,13 @@ fun CodeDetailScreen(
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             when (codeDetails.name) {
-                Code.EAN8.aliasName -> {
-                    ELAN(codeDetails = value)
-                }
-
-                Code.EAN13.aliasName -> {
-                    ELAN(codeDetails = value)
-                }
-
-                Code.UPC_A.aliasName -> {
-                    UPC(codeDetails = value)
-                }
-
-                Code.UPC_E.aliasName -> {
-                    UPC(codeDetails = value)
-                }
-
+                Code.EAN8.aliasName -> ELAN(codeDetails)
+                Code.EAN13.aliasName -> ELAN(codeDetails)
+                Code.UPC_A.aliasName -> UPC(codeDetails)
+                Code.UPC_E.aliasName -> UPC(codeDetails)
+                Code.Code11.aliasName -> LCT(codeDetails)
+                Code.INT25.aliasName -> LCT(codeDetails)
+                Code.Matrix25.aliasName -> LCT(codeDetails)
                 Code.CodaBar.aliasName -> {
                     LengthView(codeDetails = codeDetails)
                     CheckBoxView(
@@ -88,40 +77,28 @@ fun CodeDetailScreen(
                     }
                 }
 
-                Code.Code11.aliasName -> {
-                    LCT(codeDetails = value)
-                }
-
                 Code.Code39.aliasName -> {
-                    LCT(codeDetails = value)
+                    LCT(codeDetails)
                     CheckBoxView(
                         label = stringResource(id = R.string.full_ascii),
-                        value = value.fullAscii
+                        value = codeDetails.fullAscii
                     ) {
-                        value.fullAscii = it
+                        codeDetails.fullAscii = it
                     }
                 }
 
-                Code.INT25.aliasName -> {
-                    LCT(codeDetails = value)
-                }
-
-                Code.Matrix25.aliasName -> {
-                    LCT(codeDetails = value)
-                }
-
                 Code.MSI.aliasName -> {
-                    LCT(codeDetails = value)
+                    LengthView(codeDetails)
+                    TransmitCheckDigit(codeDetails)
+                    Algorithm(codeDetails)
                 }
 
-                Code.Telepen.aliasName -> {
-
-                }
+                Code.ChinaPost.aliasName -> LCT(codeDetails)
+                Code.JapanesePost.aliasName -> TransmitCheckDigit(codeDetails)
 
                 else -> {
-                    LengthView(codeDetails = value)
+                    LengthView(codeDetails)
                 }
-
             }
         }
         Button(
@@ -130,8 +107,7 @@ fun CodeDetailScreen(
                 .height(75.dp)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             onClick = {
-                if (value != codeDetails)
-                    value.update(appDatabase)
+                codeDetails.send()
                 onSave()
             }
         ) {
@@ -240,16 +216,18 @@ fun TransmitCheckDigit(codeDetails: CodeDetails) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MinLength(codeDetails: CodeDetails) {
-    var minValue by remember { mutableStateOf(codeDetails.minLength.toString()) }
+    var curValue by remember { mutableStateOf(codeDetails.minLength.toString()) }
+    val oriValue by remember { mutableStateOf(codeDetails.minLength) }
 
     OutlinedTextField(
-        value = minValue,
+        value = curValue,
         onValueChange = {
-            minValue = it.filter { symbol ->
+            curValue = it.filter { symbol ->
                 symbol.isDigit()
+            }.apply {
+                codeDetails.minLength =
+                    if (it.isNotEmpty() && it.toInt() > 0) it.toInt() else oriValue
             }
-            if (minValue.isNotEmpty() && minValue.toInt() > 0)
-                codeDetails.minLength = minValue.toInt()
         },
         modifier = Modifier
             .fillMaxWidth()
@@ -265,16 +243,18 @@ fun MinLength(codeDetails: CodeDetails) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaxLength(codeDetails: CodeDetails) {
-    var maxValue by remember { mutableStateOf(codeDetails.maxLength.toString()) }
+    var curValue by remember { mutableStateOf(codeDetails.maxLength.toString()) }
+    val oriValue by remember { mutableStateOf(codeDetails.maxLength) }
 
     OutlinedTextField(
-        value = maxValue,
+        value = curValue,
         onValueChange = {
-            maxValue = it.filter { symbol ->
+            curValue = it.filter { symbol ->
                 symbol.isDigit()
+            }.apply {
+                codeDetails.maxLength =
+                    if (it.isNotEmpty() && it.toInt() > 0) it.toInt() else oriValue
             }
-            if (maxValue.isNotEmpty() && maxValue.toInt() > 0)
-                codeDetails.maxLength = maxValue.toInt()
         },
         modifier = Modifier
             .fillMaxWidth()
@@ -300,7 +280,7 @@ fun CheckBoxView(label: String, value: Boolean, onCheckedChange: ((Boolean) -> U
             checked = checkValue,
             onCheckedChange = {
                 checkValue = it
-                onCheckedChange(it)
+                onCheckedChange.invoke(it)
             }
         )
         Text(text = label)
@@ -312,4 +292,57 @@ fun LCT(codeDetails: CodeDetails) {
     LengthView(codeDetails = codeDetails)
     CheckDigit(codeDetails = codeDetails)
     TransmitCheckDigit(codeDetails = codeDetails)
+}
+
+@Composable
+fun Algorithm(codeDetails: CodeDetails) {
+    var algorithm by remember {
+        mutableStateOf(codeDetails.algorithm)
+    }
+
+    Text(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp, top = 4.dp),
+        text = stringResource(id = R.string.check_mode)
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = algorithm == 0,
+            onClick = {
+                algorithm = 0
+                codeDetails.algorithm = 0
+            }
+        )
+        Text(text = stringResource(id = R.string.algorithm_close))
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = algorithm == 2,
+            onClick = {
+                algorithm = 2
+                codeDetails.algorithm = 2
+            }
+        )
+        Text(text = stringResource(id = R.string.mod10_mod10))
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = algorithm == 3,
+            onClick = {
+                algorithm = 3
+                codeDetails.algorithm = 3
+            }
+        )
+        Text(text = stringResource(id = R.string.mod10_mod11))
+    }
 }

@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
+import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.ui.navigation.appSettingsScreen
 import org.k.barcode.ui.navigation.broadcastSettingsScreen
 import org.k.barcode.ui.navigation.codeDetailSettingsScreen
@@ -24,7 +24,7 @@ fun SetupNavGraph(
     codeSettingsViewModel: CodeSettingsViewModel,
     settingsViewModel: SettingsViewModel,
     databaseRepository: DatabaseRepository,
-    appDatabase: AppDatabase
+    decoderManager: DecoderManager
 ) {
     NavHost(
         navController = navHostController,
@@ -32,12 +32,15 @@ fun SetupNavGraph(
     ) {
         scanTestScreen(
             paddingValues,
-            scanTestViewModel
-        )
+            scanTestViewModel,
+            decoderManager
+        ) {
+            navHostController.navigate(Screen.CodeSettings.route)
+        }
         appSettingsScreen(
             paddingValues,
             settingsViewModel,
-            appDatabase,
+            decoderManager,
             onNavigateToBroadcastSettings = {
                 navHostController.navigate(Screen.BroadcastSettings.route)
             },
@@ -47,22 +50,19 @@ fun SetupNavGraph(
         )
         codeSettingsScreen(
             paddingValues,
-            codeSettingsViewModel,
-            appDatabase
+            codeSettingsViewModel
         ) {
             navHostController.navigate(Screen.CodeDetail.codeUid(it.uid))
         }
         codeDetailSettingsScreen(
             paddingValues,
-            databaseRepository,
-            appDatabase
+            databaseRepository
         ) {
             navHostController.popBackStack()
         }
         broadcastSettingsScreen(
             paddingValues,
-            databaseRepository,
-            appDatabase
+            databaseRepository
         ) {
             navHostController.popBackStack()
         }

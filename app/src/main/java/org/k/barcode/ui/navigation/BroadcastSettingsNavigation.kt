@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.runBlocking
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.ui.screen.BroadcastSettingsScreen
 import org.k.barcode.ui.screen.Screen
@@ -12,7 +11,6 @@ import org.k.barcode.ui.screen.Screen
 fun NavGraphBuilder.broadcastSettingsScreen(
     paddingValues: PaddingValues,
     databaseRepository: DatabaseRepository,
-    appDatabase: AppDatabase,
     onSave: () -> Unit
 ) {
     composable(route = Screen.BroadcastSettings.route) {
@@ -21,7 +19,6 @@ fun NavGraphBuilder.broadcastSettingsScreen(
         }.also {
             BroadcastSettingsScreen(
                 paddingValues = paddingValues,
-                appDatabase = appDatabase,
                 settings = it
             ) {
                 onSave.invoke()

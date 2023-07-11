@@ -6,7 +6,7 @@
         <item>Clipboard</item>
     </string-array>
 
-    <string-array name="scan_mode_values">
+    <string-array name="decoder_mode_values">
         <item>0</item>
         <item>1</item>
         <item>2</item>

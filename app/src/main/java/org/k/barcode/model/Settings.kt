@@ -11,7 +11,7 @@ data class Settings(
     @ColumnInfo(name = "decoderEnable") var decoderEnable: Boolean = true,
     @ColumnInfo(name = "decoderVibrate") var decoderVibrate: Boolean = true,
     @ColumnInfo(name = "decoderSound") var decoderSound: Boolean = true,
-    @ColumnInfo(name = "decoderMode") var decoderMode: DecodeMode = DecodeMode.Focus,
+    @ColumnInfo(name = "decoderMode") var decoderMode: DecodeMode = DecodeMode.InputBox,
     @ColumnInfo(name = "decoderCharset") var decoderCharset: String = "AUTO",
     @ColumnInfo(name = "decoderPrefix") var decoderPrefix: String = "",
     @ColumnInfo(name = "decodeSuffix") var decodeSuffix: String = "",

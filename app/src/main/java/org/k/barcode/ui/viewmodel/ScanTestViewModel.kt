@@ -8,8 +8,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.data.DecoderRepository
@@ -24,11 +27,10 @@ class ScanTestViewModel @Inject constructor(
     decoderRepository: DecoderRepository,
     databaseRepository: DatabaseRepository
 ) : AndroidViewModel(application) {
-    private val _settings = MutableLiveData<Settings>()
-    val settings: LiveData<Settings> = _settings
+    private val _settings = MutableStateFlow(Settings())
+    val settings: StateFlow<Settings> = _settings
 
-    private val _decoderEvent = MutableLiveData<DecoderEvent>()
-    val decoderEvent: LiveData<DecoderEvent> = _decoderEvent
+    var decoderEvent: StateFlow<DecoderEvent> = decoderRepository.getEvent()
 
     private val _barcode = MutableLiveData<BarcodeInfo>()
     val barcode: LiveData<BarcodeInfo> = _barcode
@@ -38,11 +40,8 @@ class ScanTestViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            databaseRepository.getSettingsFlow().onEach {
+            databaseRepository.getSettingsFlow().stateIn(viewModelScope).onEach {
                 _settings.value = it
-            }.launchIn(viewModelScope)
-            decoderRepository.getEvent().onEach {
-                _decoderEvent.value = it
             }.launchIn(viewModelScope)
             decoderRepository.getBarcode().onEach {
                 _barcode.value = it

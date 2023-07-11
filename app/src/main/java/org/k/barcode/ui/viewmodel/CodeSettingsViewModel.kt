@@ -26,6 +26,9 @@ class CodeSettingsViewModel @Inject constructor(
     private val _code2D = MutableLiveData<List<CodeDetails>>()
     val code2D: LiveData<List<CodeDetails>> = _code2D
 
+    private val _codeOthers = MutableLiveData<List<CodeDetails>>()
+    val codeOthers: LiveData<List<CodeDetails>> = _codeOthers
+
     var index = mutableStateOf(0)
 
     init {
@@ -35,6 +38,9 @@ class CodeSettingsViewModel @Inject constructor(
             }.launchIn(viewModelScope)
             databaseRepository.getCodesFlow(Constant.CODE_2D).onEach {
                 _code2D.value = it
+            }.launchIn(viewModelScope)
+            databaseRepository.getCodesFlow(Constant.CODE_OTHERS).onEach {
+                _codeOthers.value = it
             }.launchIn(viewModelScope)
         }
     }

@@ -31,20 +31,19 @@ import org.k.barcode.Constant.CODE_1D
 import org.k.barcode.Constant.CODE_2D
 import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
-import org.k.barcode.utils.DatabaseUtils.update
+import org.k.barcode.utils.DatabaseUtils.send
 
 @Composable
 fun CodeSettingsScreen(
     paddingValues: PaddingValues,
     codeSettingsViewModel: CodeSettingsViewModel,
-    appDatabase: AppDatabase,
     onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
     val code1DList = codeSettingsViewModel.code1D.observeAsState(initial = emptyList())
     val code2DList = codeSettingsViewModel.code2D.observeAsState(initial = emptyList())
+    val codeOthersDList = codeSettingsViewModel.codeOthers.observeAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
@@ -58,7 +57,6 @@ fun CodeSettingsScreen(
             CODE_1D -> {
                 CodeListUI(
                     code1DList.value,
-                    appDatabase,
                     onNavigateToCodeDetails
                 )
             }
@@ -66,13 +64,15 @@ fun CodeSettingsScreen(
             CODE_2D -> {
                 CodeListUI(
                     code2DList.value,
-                    appDatabase,
                     onNavigateToCodeDetails
                 )
             }
 
             CODE_OTHERS -> {
-
+                CodeListUI(
+                    codeOthersDList.value,
+                    onNavigateToCodeDetails
+                )
             }
         }
     }
@@ -133,19 +133,17 @@ fun CodeTypeTitle(currentIndex: Int, onClick: (selectIndex: Int) -> Unit) {
 @Composable
 fun CodeListUI(
     codeList: List<CodeDetails>,
-    appDatabase: AppDatabase,
     onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
     val scrollerLazyStata = rememberLazyListState()
 
     if (codeList.isNotEmpty()) {
         LazyColumn(state = scrollerLazyStata) {
-            items(codeList) { codeDetails ->
-                CodeItem(codeDetails, onCheck = {
-                    codeDetails.copy(enable = it).update(appDatabase)
-                }) {
-                    onNavigateToCodeDetails(codeDetails)
-                }
+            items(codeList) {
+                CodeItem(
+                    codeDetails = it,
+                    onNavigateToCodeDetails = onNavigateToCodeDetails
+                )
             }
         }
     }
@@ -154,14 +152,16 @@ fun CodeListUI(
 @Composable
 fun CodeItem(
     codeDetails: CodeDetails,
-    onCheck: (Boolean) -> Unit,
-    onClick: () -> Unit
+    onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable { onClick() },
+            .clickable {
+                if (codeDetails.supportDetails)
+                    onNavigateToCodeDetails.invoke(codeDetails)
+            },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -182,7 +182,7 @@ fun CodeItem(
                     .padding(end = 4.dp),
                 checked = codeDetails.enable,
                 onCheckedChange = {
-                    onCheck(it)
+                    codeDetails.copy(enable = it).send()
                 }
             )
         }
