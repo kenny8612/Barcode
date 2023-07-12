@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.model.CodeDetails
+import java.io.BufferedReader
+import java.io.FileReader
 
-class DecoderManager private constructor(
-    private val barcodeDecoder: BarcodeDecoder
-) {
+class DecoderManager private constructor() {
     private var state = DecoderState.Closed
 
     private val backgroundThread = HandlerThread("barcode_handler")
@@ -26,8 +26,38 @@ class DecoderManager private constructor(
     private val _event = MutableStateFlow(DecoderEvent.Closed)
     private val event: StateFlow<DecoderEvent> = _event.asStateFlow()
 
+    private var barcodeDecoder: BarcodeDecoder
+
     init {
         backgroundThread.start()
+        barcodeDecoder = getBarcodeDecoder()
+    }
+
+    private fun getBarcodeDecoder(): BarcodeDecoder {
+        var decoderType = DecoderType.Hard
+        var reader: BufferedReader? = null
+        try {
+            reader = BufferedReader(FileReader("/proc/scanner_type"))
+            val type = reader.readLine().toInt()
+            enumValues<DecoderType>().forEach {
+                if (it.ordinal == type) {
+                    decoderType = it
+                    return@forEach
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            reader?.close()
+        }
+        Log.w(TAG, "found decoder $decoderType")
+
+        return when (decoderType) {
+            DecoderType.Nls -> NlsDecoder()
+            DecoderType.Hsm -> HsmDecoder()
+            DecoderType.Zebra -> ZebraDecoder()
+            else -> HardDecoder()
+        }
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -149,17 +179,17 @@ class DecoderManager private constructor(
     fun getEventFlow() = event
 
     companion object {
-        private var instance: DecoderManager? = null
-
-        //val instance: DecoderManager by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
-        //    DecoderManager()
-        //}
-        @Synchronized
-        fun getInstance(barcodeDecoder: BarcodeDecoder): DecoderManager? {
-            if (instance == null)
-                instance = DecoderManager(barcodeDecoder)
-            return instance
+        val instance: DecoderManager by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
+            DecoderManager()
         }
+
+        //private var instance: DecoderManager? = null
+        //@Synchronized
+        //fun getInstance(barcodeDecoder: BarcodeDecoder): DecoderManager? {
+        //    if (instance == null)
+        //        instance = DecoderManager(barcodeDecoder)
+        //    return instance
+        //}
 
         private const val MSG_OPEN = 0
         private const val MSG_CLOSE = 1

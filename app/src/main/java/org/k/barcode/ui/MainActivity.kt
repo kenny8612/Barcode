@@ -42,37 +42,21 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.k.barcode.BarcodeService
 import org.k.barcode.R
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.theme.BarcodeTheme
-import org.k.barcode.ui.viewmodel.SettingsViewModel
-import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
-import org.k.barcode.ui.viewmodel.ScanTestViewModel
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var databaseRepository: DatabaseRepository
-    @Inject
-    lateinit var decoderManager: DecoderManager
 
+    private val shareViewModel: ShareViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val scanTestViewModel: ScanTestViewModel by viewModels()
-        val codeSettingsViewModel: CodeSettingsViewModel by viewModels()
-        val settingsViewModel: SettingsViewModel by viewModels()
-
         setContent {
             BarcodeTheme(darkTheme = false, dynamicColor = false) {
-                MainUI(
-                    scanTestViewModel = scanTestViewModel,
-                    codeSettingsViewModel = codeSettingsViewModel,
-                    settingsViewModel = settingsViewModel,
-                    databaseRepository = databaseRepository,
-                    decoderManager = decoderManager
-                )
+                MainUI(shareViewModel = shareViewModel)
             }
         }
 
@@ -99,13 +83,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainUI(
-    scanTestViewModel: ScanTestViewModel,
-    codeSettingsViewModel: CodeSettingsViewModel,
-    settingsViewModel: SettingsViewModel,
-    databaseRepository: DatabaseRepository,
-    decoderManager: DecoderManager
-) {
+fun MainUI(shareViewModel: ShareViewModel) {
     val navHostController = rememberNavController()
     var settingsUI by remember { mutableStateOf(false) }
     val snackBarHostState = remember { SnackbarHostState() }
@@ -152,11 +130,7 @@ fun MainUI(
             SetupNavGraph(
                 navHostController = navHostController,
                 paddingValues = paddingValues,
-                scanTestViewModel = scanTestViewModel,
-                codeSettingsViewModel = codeSettingsViewModel,
-                settingsViewModel = settingsViewModel,
-                databaseRepository = databaseRepository,
-                decoderManager = decoderManager
+                shareViewModel = shareViewModel
             )
         },
         snackbarHost = {

@@ -48,7 +48,7 @@ public class ScanCamera {
         if (mCamera != null) return;
 
         try {
-            mCamera = Camera.open(port);// 打开后置摄像头  openLegacy 指定版本
+            mCamera = Camera.open(1);// 打开后置摄像头  openLegacy 指定版本
             Camera.Parameters params = mCamera.getParameters();
             params.setPreviewSize(width, height);// 设置外形尺寸
             mCamera.setParameters(params);

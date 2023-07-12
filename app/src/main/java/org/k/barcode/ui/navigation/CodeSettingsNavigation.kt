@@ -3,21 +3,24 @@ package org.k.barcode.ui.navigation
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.screen.CodeSettingsScreen
 import org.k.barcode.ui.screen.Screen
-import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
+import org.k.barcode.ui.ShareViewModel
 
 fun NavGraphBuilder.codeSettingsScreen(
     paddingValues: PaddingValues,
-    codeSettingsViewModel: CodeSettingsViewModel,
-    onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
+    shareViewModel: ShareViewModel,
+    onNavigateToCodeDetails: () -> Unit
 ) {
     composable(route = Screen.CodeSettings.route) {
         CodeSettingsScreen(
-            paddingValues,
-            codeSettingsViewModel,
-            onNavigateToCodeDetails
-        )
+            paddingValues = paddingValues,
+            shareViewModel = shareViewModel
+        ) {
+            if (it.supportDetails) {
+                shareViewModel.codeDetails = it
+                onNavigateToCodeDetails.invoke()
+            }
+        }
     }
 }

@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.shareIn
+import org.k.barcode.AppContent.Companion.app
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 
-class NlsDecoder constructor(private val context: Context) :
-    BarcodeDecoder {
+class NlsDecoder : BarcodeDecoder {
     private var softEngine: SoftEngine = SoftEngine.getInstance()
     private var startTime = 0L
 
@@ -63,7 +63,7 @@ class NlsDecoder constructor(private val context: Context) :
 
     override fun init(): Boolean {
         val result = softEngine.initSoftEngine(
-            context.getDir(
+            app.getDir(
                 "nls_data",
                 Context.MODE_PRIVATE
             ).absolutePath
@@ -153,6 +153,7 @@ class NlsDecoder constructor(private val context: Context) :
                     if (it.enable)
                         set("MSIPLSY", "ChkMode", it.algorithm.toString())
                 }
+
                 Code.RSS.aliasName -> set("RSS", "Enable", enable(it.enable))
                 Code.AustraliaPost.aliasName -> set("AUSPOST", "Enable", enable(it.enable))
                 Code.ChinaPost.aliasName -> lct("CHNPOST", it)

@@ -43,6 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
 import org.k.barcode.decoder.DecoderEvent
@@ -50,21 +53,20 @@ import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.ui.viewmodel.ScanTestViewModel
+import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.BarcodeInfoUtils.transformData
 import kotlin.random.Random
 
 @Composable
 fun ScanTestScreen(
     paddingValues: PaddingValues,
-    scanTestViewModel: ScanTestViewModel,
-    decoderManager: DecoderManager,
+    shareViewModel: ShareViewModel,
     onNavigateToCodeSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val clipboardManager = LocalClipboardManager.current
-    val decoderEvent by scanTestViewModel.decoderEvent.collectAsState()
-    val settings by scanTestViewModel.settings.collectAsState()
+    val decoderEvent by shareViewModel.decoderEvent.collectAsState()
+    val settings by shareViewModel.settings.collectAsState()
 
     Column(
         modifier = Modifier
@@ -82,7 +84,7 @@ fun ScanTestScreen(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (decoderManager.supportCode() &&
+                if (DecoderManager.instance.supportCode() &&
                     decoderEvent != DecoderEvent.Error
                 ) {
                     IconButton(
@@ -98,9 +100,9 @@ fun ScanTestScreen(
                 }
                 IconButton(
                     onClick = {
-                        if (scanTestViewModel.barcodeList.isNotEmpty()) {
-                            scanTestViewModel.barcodeList.clear()
-                            scanTestViewModel.barcodeInfo.value = BarcodeInfo()
+                        if (shareViewModel.barcodeList.isNotEmpty()) {
+                            shareViewModel.barcodeList.clear()
+                            shareViewModel.barcodeInfo.value = BarcodeInfo()
                         }
                     }
                 ) {
@@ -108,8 +110,8 @@ fun ScanTestScreen(
                 }
                 IconButton(
                     onClick = {
-                        if (scanTestViewModel.barcodeList.isNotEmpty()) {
-                            val content = scanTestViewModel.barcodeList.joinToString("\n")
+                        if (shareViewModel.barcodeList.isNotEmpty()) {
+                            val content = shareViewModel.barcodeList.joinToString("\n")
                             clipboardManager.setText(AnnotatedString(content))
                         }
                     }
@@ -124,26 +126,30 @@ fun ScanTestScreen(
                 .padding(4.dp)
                 .fillMaxWidth()
                 .weight(1f),
-            scanTestViewModel.barcodeList
+            shareViewModel.barcodeList
         )
-        DecodeResult(scanTestViewModel.barcodeInfo.value)
+        DecodeResult(shareViewModel.barcodeInfo.value)
         Scan(decoderEvent) {
             EventBus.getDefault().post(MessageEvent(Message.StartDecode))
         }
     }
 
     DisposableEffect(Unit) {
+        var barcodeJob: Job? = null
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
-                scanTestViewModel.barcode.removeObservers(lifecycleOwner)
+                barcodeJob?.cancel()
             } else if (event == Lifecycle.Event.ON_RESUME) {
-                scanTestViewModel.reset()
-                scanTestViewModel.barcode.observe(lifecycleOwner) {
-                    it.transformData(settings)?.let { data ->
-                        scanTestViewModel.barcodeList.add(data)
-                        if (scanTestViewModel.barcodeList.size > 1000)
-                            scanTestViewModel.barcodeList.clear()
-                        scanTestViewModel.barcodeInfo.value = it
+                if (barcodeJob?.isActive == true) return@LifecycleEventObserver
+
+                barcodeJob = lifecycleOwner.lifecycleScope.launch {
+                    shareViewModel.barcodeFlow.collect {
+                        it.transformData(settings)?.let { data ->
+                            shareViewModel.barcodeList.add(data)
+                            if (shareViewModel.barcodeList.size > 1000)
+                                shareViewModel.barcodeList.clear()
+                            shareViewModel.barcodeInfo.value = it
+                        }
                     }
                 }
             }

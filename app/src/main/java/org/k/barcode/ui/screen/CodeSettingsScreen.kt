@@ -32,28 +32,28 @@ import org.k.barcode.Constant.CODE_2D
 import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
 import org.k.barcode.model.CodeDetails
-import org.k.barcode.ui.viewmodel.CodeSettingsViewModel
+import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.DatabaseUtils.send
 
 @Composable
 fun CodeSettingsScreen(
     paddingValues: PaddingValues,
-    codeSettingsViewModel: CodeSettingsViewModel,
+    shareViewModel: ShareViewModel,
     onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
-    val code1DList = codeSettingsViewModel.code1D.observeAsState(initial = emptyList())
-    val code2DList = codeSettingsViewModel.code2D.observeAsState(initial = emptyList())
-    val codeOthersDList = codeSettingsViewModel.codeOthers.observeAsState(initial = emptyList())
+    val code1DList = shareViewModel.code1D.observeAsState(initial = emptyList())
+    val code2DList = shareViewModel.code2D.observeAsState(initial = emptyList())
+    val codeOthersDList = shareViewModel.codeOthers.observeAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
     ) {
-        CodeTypeTitle(currentIndex = codeSettingsViewModel.index.value) {
-            codeSettingsViewModel.index.value = it
+        CodeTypeTitle(currentIndex = shareViewModel.codeTypeIndex.value) {
+            shareViewModel.codeTypeIndex.value = it
         }
-        when (codeSettingsViewModel.index.value) {
+        when (shareViewModel.codeTypeIndex.value) {
             CODE_1D -> {
                 CodeListUI(
                     code1DList.value,
@@ -159,8 +159,7 @@ fun CodeItem(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
             .clickable {
-                if (codeDetails.supportDetails)
-                    onNavigateToCodeDetails.invoke(codeDetails)
+                onNavigateToCodeDetails.invoke(codeDetails)
             },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)

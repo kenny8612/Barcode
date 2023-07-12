@@ -33,15 +33,16 @@ import androidx.compose.ui.unit.sp
 import org.k.barcode.R
 import org.k.barcode.decoder.Code
 import org.k.barcode.model.CodeDetails
+import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.DatabaseUtils.send
 
 @Composable
 fun CodeDetailScreen(
     paddingValues: PaddingValues,
-    codeDetails: CodeDetails,
+    shareViewModel: ShareViewModel,
     onSave: () -> Unit
 ) {
-    //val value by remember { mutableStateOf(codeDetails) }
+    val codeDetails = shareViewModel.codeDetails
 
     Column(
         modifier = Modifier.padding(
@@ -60,13 +61,10 @@ fun CodeDetailScreen(
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             when (codeDetails.name) {
-                Code.EAN8.aliasName -> ELAN(codeDetails)
-                Code.EAN13.aliasName -> ELAN(codeDetails)
-                Code.UPC_A.aliasName -> UPC(codeDetails)
-                Code.UPC_E.aliasName -> UPC(codeDetails)
-                Code.Code11.aliasName -> LCT(codeDetails)
-                Code.INT25.aliasName -> LCT(codeDetails)
-                Code.Matrix25.aliasName -> LCT(codeDetails)
+                Code.EAN8.aliasName, Code.EAN13.aliasName -> ELAN(codeDetails)
+                Code.UPC_A.aliasName, Code.UPC_E.aliasName -> UPC(codeDetails)
+                Code.Code11.aliasName, Code.INT25.aliasName, Code.Matrix25.aliasName -> LCT(codeDetails)
+
                 Code.CodaBar.aliasName -> {
                     LengthView(codeDetails = codeDetails)
                     CheckBoxView(
@@ -108,7 +106,7 @@ fun CodeDetailScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             onClick = {
                 codeDetails.send()
-                onSave()
+                onSave.invoke()
             }
         ) {
             Text(text = stringResource(id = R.string.save_code))

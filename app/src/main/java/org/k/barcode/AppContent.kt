@@ -1,7 +1,9 @@
 package org.k.barcode
 
 import android.app.Application
+import android.content.SharedPreferences
 import android.os.StrictMode
+import androidx.preference.PreferenceManager
 import dagger.hilt.android.HiltAndroidApp
 import org.k.barcode.ui.MainActivity
 
@@ -9,6 +11,8 @@ import org.k.barcode.ui.MainActivity
 class AppContent : Application() {
     override fun onCreate() {
         super.onCreate()
+        app = this
+        prefs = PreferenceManager.getDefaultSharedPreferences(this)
         //开启Thread策略模式
         if (BuildConfig.DEBUG) {
             StrictMode.setThreadPolicy(
@@ -37,5 +41,9 @@ class AppContent : Application() {
 
     companion object {
         const val TAG = "BarcodeDecoder"
+        lateinit var app: Application
+            private set
+        lateinit var prefs: SharedPreferences
+            private set
     }
 }

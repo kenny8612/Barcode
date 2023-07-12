@@ -31,5 +31,7 @@ enum class Code(val aliasName: String) {
     Composite("Composite"),
     AustraliaPost("Australia Post"),
     ChinaPost("China Post"),
-    JapanesePost("Japanese Post")
+    JapanesePost("Japanese Post"),
+    KoreanPost(" Korean Post"),
+    CanadianPost(" Canadian Post")
 }

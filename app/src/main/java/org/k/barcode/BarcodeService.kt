@@ -10,15 +10,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.hardware.camera2.CameraManager
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.view.KeyEvent
 import androidx.work.OneTimeWorkRequest
@@ -42,6 +43,7 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.k.barcode.AppContent.Companion.TAG
+import org.k.barcode.AppContent.Companion.prefs
 import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.data.DecoderRepository
@@ -64,12 +66,8 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-
 @AndroidEntryPoint
 class BarcodeService : Service() {
-    @Inject
-    lateinit var decoderManager: DecoderManager
-
     @Inject
     lateinit var databaseRepository: DatabaseRepository
 
@@ -80,19 +78,12 @@ class BarcodeService : Service() {
     lateinit var decoderRepository: DecoderRepository
 
     @Inject
-    lateinit var prefs: SharedPreferences
+    lateinit var decoderManager: DecoderManager
 
-    @Inject
-    lateinit var notificationManager: NotificationManager
-
-    @Inject
-    lateinit var keyguardManager: KeyguardManager
-
-    @Inject
-    lateinit var powerManager: PowerManager
-
-    @Inject
-    lateinit var vibrator: Vibrator
+    private lateinit var notificationManager: NotificationManager
+    private lateinit var keyguardManager: KeyguardManager
+    private lateinit var powerManager: PowerManager
+    private lateinit var vibrator: Vibrator
 
     private lateinit var settings: Settings
     private lateinit var codeDetailsList: List<CodeDetails>
@@ -122,6 +113,17 @@ class BarcodeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        vibrator = if (Build.VERSION.SDK_INT >= 31) {
+            val vibratorManager =
+                getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
         val builder = SoundPool.Builder()
         val attrBuilder = AudioAttributes.Builder()

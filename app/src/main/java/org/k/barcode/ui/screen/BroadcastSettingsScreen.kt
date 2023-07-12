@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,15 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.k.barcode.R
-import org.k.barcode.model.Settings
+import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.DatabaseUtils.send
 
 @Composable
 fun BroadcastSettingsScreen(
     paddingValues: PaddingValues,
-    settings: Settings,
+    shareViewModel: ShareViewModel,
     onSave: () -> Unit
 ) {
+    val settings by shareViewModel.settings.collectAsState()
     val broadcastStartDecode = remember { mutableStateOf(settings.broadcastStartDecode) }
     val broadcastStopDecode = remember { mutableStateOf(settings.broadcastStopDecode) }
     val broadcastDecodeData = remember { mutableStateOf(settings.broadcastDecodeData) }

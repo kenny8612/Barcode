@@ -56,7 +56,7 @@ import org.k.barcode.decoder.DecoderEvent
 import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
-import org.k.barcode.ui.viewmodel.SettingsViewModel
+import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.DatabaseUtils.send
 import org.k.barcode.utils.SettingsUtils.formatKeycode
 import org.k.barcode.utils.SettingsUtils.formatMode
@@ -65,14 +65,13 @@ import org.k.barcode.utils.SettingsUtils.keyCodeToIndex
 @Composable
 fun AppSettingsScreen(
     paddingValues: PaddingValues,
-    settingsViewModel: SettingsViewModel,
-    decoderManager: DecoderManager,
+    shareViewModel: ShareViewModel,
     onNavigateToCodeSettings: () -> Unit,
     onNavigateToBroadcastSettings: () -> Unit
 ) {
     val context = LocalContext.current
-    val settings by settingsViewModel.settings.collectAsState()
-    val decoderEvent by settingsViewModel.decoderEvent.collectAsState()
+    val settings by shareViewModel.settings.collectAsState()
+    val decoderEvent by shareViewModel.decoderEvent.collectAsState()
 
     Column(
         modifier = Modifier
@@ -110,7 +109,7 @@ fun AppSettingsScreen(
         SwitchEnable(
             stringResource(id = R.string.decoder_light),
             settings.decoderLight,
-            decoderManager.supportLight()
+            DecoderManager.instance.supportLight()
         ) {
             settings.copy(decoderLight = it).send()
         }
@@ -162,7 +161,7 @@ fun AppSettingsScreen(
             settings.copy(continuousDecodeInterval = it).send()
         }
         CodesEditView(
-            decoderManager.supportCode(),
+            DecoderManager.instance.supportCode(),
             onNavigateToCodeSettings
         )
         BroadcastSettingsView(onNavigateToBroadcastSettings)

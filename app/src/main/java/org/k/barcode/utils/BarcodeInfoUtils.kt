@@ -44,6 +44,8 @@ object BarcodeInfoUtils {
         intent.putExtra("simulateKeyboard_keycode", settings.attachKeycode)
         intent.putExtra("deleteSurroundingText", false)
         context.sendBroadcast(intent)
+        if (settings.attachKeycode != 0)
+            simulateKeycode(context, KeyEventEx(settings.attachKeycode))
     }
 
     fun BarcodeInfo.broadcast(context: Context, settings: Settings) {
@@ -72,7 +74,7 @@ object BarcodeInfoUtils {
             clipboardManager.setPrimaryClip(
                 ClipData.newPlainText(
                     "BarcodeText",
-                    formatData
+                    it
                 )
             )
         }
