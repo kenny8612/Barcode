@@ -30,11 +30,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.k.barcode.Constant.UPC_PREAMBLE_DATA_ONLY
+import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_COUNTRY_DATA
+import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.R
-import org.k.barcode.decoder.Code
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.DatabaseUtils.send
+import org.k.barcode.decoder.Code.D1.*
+import org.k.barcode.decoder.Code.D2.*
+import org.k.barcode.decoder.Code.Post.*
 
 @Composable
 fun CodeDetailScreen(
@@ -51,7 +56,7 @@ fun CodeDetailScreen(
             end = 8.dp
         )
     ) {
-        CodeTitle(name = codeDetails.name)
+        CodeTitle(name = codeDetails.fullName)
         Card(
             modifier = Modifier
                 .padding(4.dp)
@@ -61,11 +66,10 @@ fun CodeDetailScreen(
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             when (codeDetails.name) {
-                Code.EAN8.aliasName, Code.EAN13.aliasName -> ELAN(codeDetails)
-                Code.UPC_A.aliasName, Code.UPC_E.aliasName -> UPC(codeDetails)
-                Code.Code11.aliasName, Code.INT25.aliasName, Code.Matrix25.aliasName -> LCT(codeDetails)
-
-                Code.CodaBar.aliasName -> {
+                EAN8.name, EAN13.name -> ELAN(codeDetails)
+                UPC_A.name, UPC_E.name -> UPC(codeDetails)
+                Code11.name, INT25.name, Matrix25.name -> LCT(codeDetails)
+                CodaBar.name -> {
                     LengthView(codeDetails = codeDetails)
                     CheckBoxView(
                         stringResource(id = R.string.start_stop_characters),
@@ -74,8 +78,7 @@ fun CodeDetailScreen(
                         codeDetails.startStopCharacters = it
                     }
                 }
-
-                Code.Code39.aliasName -> {
+                Code39.name -> {
                     LCT(codeDetails)
                     CheckBoxView(
                         label = stringResource(id = R.string.full_ascii),
@@ -84,19 +87,14 @@ fun CodeDetailScreen(
                         codeDetails.fullAscii = it
                     }
                 }
-
-                Code.MSI.aliasName -> {
+                MSI.name -> {
                     LengthView(codeDetails)
                     TransmitCheckDigit(codeDetails)
                     Algorithm(codeDetails)
                 }
-
-                Code.ChinaPost.aliasName -> LCT(codeDetails)
-                Code.JapanesePost.aliasName -> TransmitCheckDigit(codeDetails)
-
-                else -> {
-                    LengthView(codeDetails)
-                }
+                ChinaPost.name -> LCT(codeDetails)
+                JapanPostal.name -> TransmitCheckDigit(codeDetails)
+                else -> LengthView(codeDetails)
             }
         }
         Button(
@@ -158,10 +156,10 @@ fun UpcPreamble(codeDetails: CodeDetails) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
-            selected = preamble == 0,
+            selected = preamble == UPC_PREAMBLE_DATA_ONLY,
             onClick = {
-                preamble = 0
-                codeDetails.upcPreamble = 0
+                preamble = UPC_PREAMBLE_DATA_ONLY
+                codeDetails.upcPreamble = preamble
             })
         Text(text = stringResource(id = R.string.transmit_no_preamble))
     }
@@ -170,10 +168,10 @@ fun UpcPreamble(codeDetails: CodeDetails) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
-            selected = preamble == 1,
+            selected = preamble == UPC_PREAMBLE_SYSTEM_DATA,
             onClick = {
-                preamble = 1
-                codeDetails.upcPreamble = 1
+                preamble = UPC_PREAMBLE_SYSTEM_DATA
+                codeDetails.upcPreamble = preamble
             })
         Text(text = stringResource(id = R.string.transmit_system_character_only))
     }
@@ -182,10 +180,10 @@ fun UpcPreamble(codeDetails: CodeDetails) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
-            selected = preamble == 2,
+            selected = preamble == UPC_PREAMBLE_SYSTEM_COUNTRY_DATA,
             onClick = {
-                preamble = 2
-                codeDetails.upcPreamble = 2
+                preamble = UPC_PREAMBLE_SYSTEM_COUNTRY_DATA
+                codeDetails.upcPreamble = preamble
             })
         Text(text = stringResource(id = R.string.transmit_system_character_and_country_code))
     }

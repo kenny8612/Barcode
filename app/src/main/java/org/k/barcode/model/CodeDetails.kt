@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 data class CodeDetails(
     @PrimaryKey(autoGenerate = true) val uid: Int = 0,
     @ColumnInfo(name = "name") var name: String = "",
+    @ColumnInfo(name = "fullName") var fullName: String = "",
     @ColumnInfo(name = "type") var type: Int = 0,
     @ColumnInfo(name = "enable") var enable: Boolean = false,
     @ColumnInfo(name = "transmitCheckDigit") var transmitCheckDigit: Boolean = false,

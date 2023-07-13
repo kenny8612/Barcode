@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -41,15 +42,11 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import org.k.barcode.BarcodeService
 import org.k.barcode.R
-import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.ui.screen.Screen
 import org.k.barcode.ui.theme.BarcodeTheme
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject
-    lateinit var databaseRepository: DatabaseRepository
 
     private val shareViewModel: ShareViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,9 +57,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        onBackPressedDispatcher.addCallback(this) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                finishAfterTransition()
+            } else {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+            }
+        }
+
         val permissionList = mutableListOf<String>()
         permissionList.add(Manifest.permission.CAMERA)
-        if (Build.VERSION.SDK_INT >= 33)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             permissionList.add(Manifest.permission.POST_NOTIFICATIONS)
 
         requestPermissionLauncher.launch(permissionList.toTypedArray())
@@ -71,7 +77,7 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             if (result[Manifest.permission.CAMERA] == true) {
-                if (Build.VERSION.SDK_INT >= 33) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     if (result[Manifest.permission.POST_NOTIFICATIONS] == true)
                         startForegroundService(Intent(this, BarcodeService::class.java))
                 } else {

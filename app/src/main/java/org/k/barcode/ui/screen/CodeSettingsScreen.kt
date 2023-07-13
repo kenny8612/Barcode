@@ -171,7 +171,7 @@ fun CodeItem(
             Text(
                 modifier = Modifier
                     .padding(start = 16.dp),
-                text = codeDetails.name,
+                text = codeDetails.fullName,
                 fontWeight = FontWeight.Medium
             )
             Checkbox(

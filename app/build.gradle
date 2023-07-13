@@ -23,7 +23,7 @@ android {
         minSdk 29
         targetSdk 33
         versionCode 119
-        versionName "1.1.9"
+        versionName "1.2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -131,5 +131,4 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.9.0'
     //implementation 'org.apache.commons:commons-text:1.9'
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.10'
-    //implementation files('libs/decoderapijni.jar')
 }

@@ -1,6 +1,5 @@
 package org.k.barcode.decoder
 
-import android.content.Context
 import com.dawn.decoderapijni.SoftEngine
 import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_SUCC
 import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_TIMEOUT
@@ -11,12 +10,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.shareIn
-import org.k.barcode.AppContent.Companion.app
+import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_COUNTRY_DATA
+import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
+import org.k.barcode.decoder.Code.D1.*
+import org.k.barcode.decoder.Code.D2.*
+import org.k.barcode.decoder.Code.Post.*
 
-class NlsDecoder : BarcodeDecoder {
-    private var softEngine: SoftEngine = SoftEngine.getInstance()
+class NlsDecoder(numberOfCameras: Int, private val dataPath: String) : BarcodeDecoder {
+    private var softEngine = SoftEngine.getInstance()
     private var startTime = 0L
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -59,19 +62,18 @@ class NlsDecoder : BarcodeDecoder {
 
     init {
         softEngine.setNdkSystemLanguage(0)
+        softEngine.setCameraId(numberOfCameras - 1)
     }
 
     override fun init(): Boolean {
-        val result = softEngine.initSoftEngine(
-            app.getDir(
-                "nls_data",
-                Context.MODE_PRIVATE
-            ).absolutePath
-        )
-        if (!result) return false
+        if (!softEngine.initSoftEngine(dataPath))
+            return false
 
-        return softEngine.Open()
+        return softEngine.Open().apply {
+            if (this) Thread.sleep(100)
+        }
     }
+
 
     override fun deInit() {
         softEngine.Close()
@@ -95,71 +97,93 @@ class NlsDecoder : BarcodeDecoder {
 
     override fun updateCode(codeDetails: List<CodeDetails>) {
         codeDetails.forEach {
-            when (it.name) {
-                Code.DotCode.aliasName -> set("DOTCODE", "Enable", enable(it.enable))
-                Code.EAN8.aliasName -> elanCode("EAN8", it)
-                Code.EAN13.aliasName -> elanCode("EAN13", it)
-                Code.UPC_A.aliasName -> upcCode("UPCA", it)
-                Code.UPC_E.aliasName -> upcCode("UPCE", it)
-                Code.Code11.aliasName -> lct("CODE11", it)
-                Code.Matrix25.aliasName -> lct("MATRIX25", it)
-                Code.Code128.aliasName -> minMaxLength("CODE128", it)
-                Code.Code49.aliasName -> minMaxLength("CODE49", it)
-                Code.Code93.aliasName -> minMaxLength("CODE93", it)
-                Code.Aztec.aliasName -> minMaxLength("AZTEC", it)
-                Code.MaxiCode.aliasName -> minMaxLength("MAXIC", it)
-                Code.MicroPDF.aliasName -> minMaxLength("MICROPDF", it)
-                Code.PDF417.aliasName -> minMaxLength("PDF417", it)
-                Code.DataMatrix.aliasName -> minMaxLength("DM", it)
-                Code.QR.aliasName -> minMaxLength("QR", it)
-                Code.HanXin.aliasName -> minMaxLength("CSC", it)
-                Code.GridMatrix.aliasName -> minMaxLength("GM", it)
-                Code.UCC_EAN128.aliasName -> minMaxLength("UCCEAN128", it)
-                Code.CodaBar.aliasName -> {
-                    minMaxLength("CODEBAR", it)
-                    if (it.enable)
-                        set("CODEBAR", "TrsmtStasrtStop", enable(it.startStopCharacters))
-                }
-
-                Code.Code39.aliasName -> {
-                    lct("CODE39", it)
-                    if (it.enable)
-                        set("CODE39", "FullAscii", enable(it.fullAscii))
-                }
-
-                Code.INT25.aliasName -> {
-                    lct("ITF", it)
-                    lct("IND25", it)
-                    set("ITF6", "Enable", enable(it.enable))
-                    transmitCheckDigit("ITF6", it.transmitCheckDigit)
-                    set("ITF14", "Enable", enable(it.enable))
-                    transmitCheckDigit("ITF14", it.transmitCheckDigit)
-                }
-
-                Code.ISBN.aliasName -> {
-                    set("ISBN", "Enable", enable(it.enable))
-                    if (it.enable) {
-                        set("ISBN", "Digit2", enable(it.supplemental2))
-                        set("ISBN", "Digit5", enable(it.supplemental5))
+            it.run {
+                when (name) {
+                    /***** 1D start *****/
+                    EAN8.name -> setEAN("EAN8")
+                    EAN13.name -> setEAN("EAN13")
+                    UPC_A.name -> setUPC("UPCA")
+                    UPC_E.name -> setUPC("UPCE")
+                    Code11.name -> {
+                        setEnable("CODE11")
+                        setLCT("CODE11")
                     }
-                }
 
-                Code.Composite.aliasName -> {
-                    set("COMPOSITE", "Enable", enable(it.enable))
-                }
+                    Code128.name -> {
+                        setEnable("CODE128")
+                        setMinMaxLength("CODE128")
+                    }
 
-                Code.MSI.aliasName -> {
-                    lct("MSIPLSY", it)
-                    if (it.enable)
-                        set("MSIPLSY", "ChkMode", it.algorithm.toString())
-                }
+                    Code39.name -> {
+                        setEnable("CODE39")
+                        setMinMaxLength("CODE39")
+                        setFullAscii("CODE39")
+                    }
 
-                Code.RSS.aliasName -> set("RSS", "Enable", enable(it.enable))
-                Code.AustraliaPost.aliasName -> set("AUSPOST", "Enable", enable(it.enable))
-                Code.ChinaPost.aliasName -> lct("CHNPOST", it)
-                Code.JapanesePost.aliasName -> {
-                    set("JAPANPOST", "Enable", enable(it.enable))
-                    transmitCheckDigit("JAPANPOST", it.transmitCheckDigit)
+                    Code49.name -> {
+                        setEnable("CODE49")
+                        setMinMaxLength("CODE49")
+                    }
+
+                    Code93.name -> {
+                        setEnable("CODE93")
+                        setMinMaxLength("CODE93")
+                    }
+
+                    Matrix25.name -> {
+                        setEnable("MATRIX25")
+                        setLCT("MATRIX25")
+                    }
+
+                    UCC_EAN128.name -> {
+                        setEnable("UCCEAN128")
+                        setMinMaxLength("UCCEAN128")
+                    }
+
+                    CodaBar.name -> {
+                        setEnable("CODEBAR")
+                        setMinMaxLength("CODEBAR")
+                        setStartStopCharacters("CODEBAR")
+                    }
+
+                    INT25.name -> {
+                        setEnable("ITF")
+                        setLCT("ITF")
+                        setEnable("IND25")
+                        setLCT("IND25")
+                        setEnable("ITF6")
+                        setTransmitCheckDigit("ITF6")
+                        setEnable("ITF14")
+                        setTransmitCheckDigit("ITF14")
+                    }
+
+                    ISBN.name -> setEnable("ISBN")
+                    Composite.name -> setEnable("COMPOSITE")
+                    RSS.name -> setEnable("RSS")
+                    MSI.name -> {
+                        setEnable("MSIPLSY")
+                        setLCT("MSIPLSY")
+                        setCheckDigitAlgorithm("MSIPLSY")
+                    }
+                    /***** 1D end *****/
+
+                    /***** 2D start *****/
+                    MaxiCode.name -> setEnable("MAXIC")
+                    MicroPDF.name -> setEnable("MICROPDF")
+                    PDF417.name -> setEnable("PDF417")
+                    DataMatrix.name -> setEnable("DM")
+                    QR.name -> setEnable("QR")
+                    HanXin.name -> setEnable("CSC")
+                    GridMatrix.name -> setEnable("GM")
+                    Aztec.name -> setEnable("AZTEC")
+                    DotCode.name -> setEnable("DOTCODE")
+                    /***** 2D end *****/
+
+                    /***** POST start *****/
+                    AustraliaPost.name -> setEnable("AUSPOST")
+                    ChinaPost.name -> setEnable("CHNPOST")
+                    JapanPostal.name -> setEnable("JAPANPOST")
+                    /***** POST end *****/
                 }
             }
         }
@@ -173,63 +197,76 @@ class NlsDecoder : BarcodeDecoder {
         softEngine.setScanTimeout(timeout)
     }
 
-    private fun set(codeName: String, params: String, value: String) {
-        softEngine.ScanSet(codeName, params, value)
+    private fun CodeDetails.setEnable(codeName: String) {
+        softEngine.ScanSet(codeName, "Enable", if (this.enable) "1" else "0")
     }
 
-    private fun enable(value: Boolean) = if (value) "1" else "0"
-
-    private fun transmitCheckDigit(codeName: String, value: Boolean) {
-        set(codeName, "TrsmtChkChar", enable(value))
+    private fun CodeDetails.setEAN(codeName: String) {
+        setEnable(codeName)
+        setDigit2Digit5(codeName)
+        setTransmitCheckDigit(codeName)
     }
 
-    private fun elanCode(codeName: String, codeDetails: CodeDetails) {
-        set(codeName, "Enable", enable(codeDetails.enable))
-        if (codeDetails.enable) {
-            transmitCheckDigit(codeName, codeDetails.transmitCheckDigit)
-            set(codeName, "Digit2", enable(codeDetails.supplemental2))
-            set(codeName, "Digit5", enable(codeDetails.supplemental5))
-        }
+    private fun CodeDetails.setUPC(codeName: String) {
+        setEAN(codeName)
+        upcPreamble(codeName)
     }
 
-    private fun upcCode(codeName: String, codeDetails: CodeDetails) {
-        elanCode(codeName, codeDetails)
-        if (codeDetails.enable) {
-            when (codeDetails.upcPreamble) {
-                0 -> {
-                    set(codeName, "SysData", "0")
-                    set(codeName, "UsSysData", "0")
-                    set(codeName, "OnlyData", "1")
-                }
+    private fun CodeDetails.setDigit2Digit5(codeName: String) {
+        softEngine.ScanSet(codeName, "Digit2", if (this.supplemental2) "1" else "0")
+        softEngine.ScanSet(codeName, "Digit5", if (this.supplemental2) "1" else "0")
+    }
 
-                1 -> {
-                    set(codeName, "SysData", "1")
-                    set(codeName, "UsSysData", "0")
-                    set(codeName, "OnlyData", "0")
-                }
+    private fun CodeDetails.setTransmitCheckDigit(codeName: String) {
+        softEngine.ScanSet(codeName, "TrsmtChkChar", if (this.transmitCheckDigit) "1" else "0")
+    }
 
-                else -> {
-                    set(codeName, "SysData", "0")
-                    set(codeName, "UsSysData", "1")
-                    set(codeName, "OnlyData", "0")
-                }
+    private fun CodeDetails.upcPreamble(codeName: String) {
+        when (this.upcPreamble) {
+            UPC_PREAMBLE_SYSTEM_DATA -> {
+                softEngine.ScanSet(codeName, "SysData", "1")
+                softEngine.ScanSet(codeName, "UsSysData", "0")
+                softEngine.ScanSet(codeName, "OnlyData", "0")
+            }
+
+            UPC_PREAMBLE_SYSTEM_COUNTRY_DATA -> {
+                softEngine.ScanSet(codeName, "SysData", "0")
+                softEngine.ScanSet(codeName, "UsSysData", "1")
+                softEngine.ScanSet(codeName, "OnlyData", "0")
+            }
+
+            else -> {
+                softEngine.ScanSet(codeName, "SysData", "0")
+                softEngine.ScanSet(codeName, "UsSysData", "0")
+                softEngine.ScanSet(codeName, "OnlyData", "1")
             }
         }
     }
 
-    private fun minMaxLength(codeName: String, codeDetails: CodeDetails) {
-        set(codeName, "Enable", enable(codeDetails.enable))
-        if (codeDetails.enable) {
-            set(codeName, "Minlen", codeDetails.minLength.toString())
-            set(codeName, "Maxlen", codeDetails.maxLength.toString())
-        }
+    private fun CodeDetails.setMinMaxLength(codeName: String) {
+        softEngine.ScanSet(codeName, "Minlen", this.minLength.toString())
+        softEngine.ScanSet(codeName, "Maxlen", this.maxLength.toString())
     }
 
-    private fun lct(codeName: String, codeDetails: CodeDetails) {
-        minMaxLength(codeName, codeDetails)
-        if (codeDetails.enable) {
-            set(codeName, "Check", enable(codeDetails.checkDigit))
-            transmitCheckDigit(codeName, codeDetails.transmitCheckDigit)
-        }
+    private fun CodeDetails.setLCT(codeName: String) {
+        setMinMaxLength(codeName)
+        setCheckDigit(codeName)
+        setTransmitCheckDigit(codeName)
+    }
+
+    private fun CodeDetails.setCheckDigit(codeName: String) {
+        softEngine.ScanSet(codeName, "Check", if (this.checkDigit) "1" else "0")
+    }
+
+    private fun CodeDetails.setFullAscii(codeName: String) {
+        softEngine.ScanSet(codeName, "FullAscii", if (this.fullAscii) "1" else "0")
+    }
+
+    private fun CodeDetails.setStartStopCharacters(codeName: String) {
+        softEngine.ScanSet(codeName, "TrsmtStasrtStop", if (this.startStopCharacters) "1" else "0")
+    }
+
+    private fun CodeDetails.setCheckDigitAlgorithm(codeName: String) {
+        softEngine.ScanSet(codeName, "ChkMode", this.algorithm.toString())
     }
 }

@@ -1,5 +1,7 @@
 package org.k.barcode.decoder
 
+import android.content.Context
+import android.hardware.camera2.CameraManager
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Message
@@ -12,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.k.barcode.AppContent.Companion.TAG
+import org.k.barcode.AppContent.Companion.app
+import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 import java.io.BufferedReader
 import java.io.FileReader
@@ -27,9 +31,13 @@ class DecoderManager private constructor() {
     private val event: StateFlow<DecoderEvent> = _event.asStateFlow()
 
     private var barcodeDecoder: BarcodeDecoder
+    var numberOfCameras = 0
+        private set
 
     init {
         backgroundThread.start()
+        val cameraManager = app.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        numberOfCameras = cameraManager.cameraIdList.size
         barcodeDecoder = getBarcodeDecoder()
     }
 
@@ -53,9 +61,13 @@ class DecoderManager private constructor() {
         Log.w(TAG, "found decoder $decoderType")
 
         return when (decoderType) {
-            DecoderType.Nls -> NlsDecoder()
+            DecoderType.Nls -> NlsDecoder(
+                numberOfCameras,
+                app.getDir("nls_data", Context.MODE_PRIVATE).absolutePath
+            )
+
             DecoderType.Hsm -> HsmDecoder()
-            DecoderType.Zebra -> ZebraDecoder()
+            DecoderType.Zebra -> ZebraDecoder(numberOfCameras)
             else -> HardDecoder()
         }
     }
@@ -84,8 +96,10 @@ class DecoderManager private constructor() {
                         if (barcodeDecoder.init()) {
                             observeBarcodeDataFlow()
                             state = DecoderState.Idle
+                            Log.d(TAG, "decoder opened")
                             _event.value = DecoderEvent.Opened
                         } else {
+                            Log.e(TAG, "decoder error")
                             _event.value = DecoderEvent.Error
                         }
                     }
@@ -97,25 +111,42 @@ class DecoderManager private constructor() {
                         cancelBarcodeDataFlow()
                         barcodeDecoder.deInit()
                         state = DecoderState.Closed
+                        Log.d(TAG, "decoder closed")
                         _event.value = DecoderEvent.Closed
                     }
                 }
 
                 MSG_START_DECODE -> {
                     if (state == DecoderState.Idle) {
+                        Log.d(TAG, "start decode")
                         state = DecoderState.Decoding
                         barcodeDecoder.startDecode()
+                        Thread.sleep(80)
                     }
                 }
 
                 MSG_CANCEL_DECODER -> {
-                    if (state == DecoderState.Decoding)
+                    if (state == DecoderState.Decoding) {
+                        Log.d(TAG, "canceling decode")
                         barcodeDecoder.cancelDecode()
+                    }
                 }
 
                 MSG_DECODE_RESULT -> {
-                    if (state == DecoderState.Decoding)
+                    if (state == DecoderState.Decoding) {
+                        val barcodeInfo = msg.obj as BarcodeInfo
+                        if (barcodeInfo.sourceData == null) {
+                            if (barcodeInfo.decodeTime == 0L) {
+                                Log.d(TAG, "decode canceled")
+                            } else {
+                                Log.w(TAG, "decode timeout")
+                                Thread.sleep(120)
+                            }
+                        } else {
+                            Log.d(TAG, "decode done")
+                        }
                         state = DecoderState.Idle
+                    }
                 }
 
                 MSG_UPDATE_CODES -> {

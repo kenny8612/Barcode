@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
 import kotlinx.coroutines.delay
-import org.k.barcode.Constant.ACTION_INPUT_INJECT
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.Settings
 import java.nio.charset.Charset
@@ -136,5 +135,6 @@ object BarcodeInfoUtils {
         return keyList
     }
 
+    private const val ACTION_INPUT_INJECT = "com.action.INPUT_INJECT"
     data class KeyEventEx(val keycode: Int, val shift: Boolean = false)
 }
