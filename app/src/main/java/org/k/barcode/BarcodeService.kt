@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.camera2.CameraManager
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
@@ -106,7 +107,7 @@ class BarcodeService : Service() {
     private var cameraState = false
     private var lastDecoderTime = 0L
     private var decoderReady = false
-
+    private var numberOfCameras = 0
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
@@ -131,6 +132,9 @@ class BarcodeService : Service() {
         builder.setAudioAttributes(attrBuilder.build())
         soundPool = builder.build()
         scannerSoundId = soundPool.load(this, R.raw.scan_buzzer, 1)
+
+        val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        numberOfCameras = cameraManager.cameraIdList.size
 
         setupNotification()
         loadSettingsData()
@@ -449,7 +453,7 @@ class BarcodeService : Service() {
                 cameraState = intent.getBooleanExtra("state", false)
                 val cameraId = intent.getStringExtra("cameraId")?.toInt()
 
-                if (cameraId != decoderManager.numberOfCameras - 1) {
+                if (cameraId != numberOfCameras - 1) {
                     if (cameraState) {
                         cancelOpenDecoderDelayJob()
                         decoderManager.cancelDecode()
@@ -572,10 +576,10 @@ class BarcodeService : Service() {
         gson.fromJson<List<CodeDetails>>(
             prefs.getString("codes_backup", ""),
             object : TypeToken<List<CodeDetails>>() {}.type
-        )?.let {
-            if (it != codeDetailsList) {
+        )?.apply {
+            if (this != codeDetailsList) {
                 cancelCodesFlow()
-                it.update(appDatabase)
+                update(appDatabase)
                 runBlocking {
                     delay(500)
                     observeCodesFlow()
@@ -586,8 +590,9 @@ class BarcodeService : Service() {
         gson.fromJson(
             prefs.getString("settings_backup", ""),
             Settings::class.java
-        )?.let {
-            if (it != settings) it.update(appDatabase)
+        )?.apply {
+            if (this != settings)
+                update(appDatabase)
         }
     }
 

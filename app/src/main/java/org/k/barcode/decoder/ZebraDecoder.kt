@@ -1,22 +1,63 @@
 package org.k.barcode.decoder
 
 import com.zebra.zebrascanner.ZebraScanner
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.shareIn
-import org.k.barcode.model.BarcodeInfo
+import org.k.barcode.decoder.Code.D1.CodaBar
+import org.k.barcode.decoder.Code.D1.Code11
+import org.k.barcode.decoder.Code.D1.Code128
+import org.k.barcode.decoder.Code.D1.Code39
+import org.k.barcode.decoder.Code.D1.Code93
+import org.k.barcode.decoder.Code.D1.Composite
+import org.k.barcode.decoder.Code.D1.EAN13
+import org.k.barcode.decoder.Code.D1.EAN8
+import org.k.barcode.decoder.Code.D1.INT25
+import org.k.barcode.decoder.Code.D1.ISBN
+import org.k.barcode.decoder.Code.D1.MSI
+import org.k.barcode.decoder.Code.D1.Matrix25
+import org.k.barcode.decoder.Code.D1.RSS
+import org.k.barcode.decoder.Code.D1.UCC_EAN128
+import org.k.barcode.decoder.Code.D1.UPC_A
+import org.k.barcode.decoder.Code.D1.UPC_E
+import org.k.barcode.decoder.Code.D2.Aztec
+import org.k.barcode.decoder.Code.D2.DataMatrix
+import org.k.barcode.decoder.Code.D2.HanXin
+import org.k.barcode.decoder.Code.D2.MaxiCode
+import org.k.barcode.decoder.Code.D2.MicroPDF
+import org.k.barcode.decoder.Code.D2.PDF417
+import org.k.barcode.decoder.Code.D2.QR
+import org.k.barcode.decoder.Code.Post.AustraliaPost
+import org.k.barcode.decoder.Code.Post.JapanPostal
+import org.k.barcode.decoder.Code.Post.UKPostal
+import org.k.barcode.decoder.Code.Post.USPostnet
 import org.k.barcode.model.CodeDetails
-import org.k.barcode.decoder.Code.D1.*
-import org.k.barcode.decoder.Code.D2.*
-import org.k.barcode.decoder.Code.Post.*
 
-class ZebraDecoder(private val numberOfCameras: Int) : BarcodeDecoder {
+class ZebraDecoder private constructor(): BaseDecoder() {
     private val zebraScanner = ZebraScanner()
-    private var startTime = 0L
+
+    init {
+        zebraScanner.setDecodeCallback(object : ZebraScanner.DecodeCallback {
+            override fun onDecodeComplete(
+                symbology: Int,
+                length: Int,
+                data: ByteArray,
+                reader: ZebraScanner
+            ) {
+                if (length > 0) {
+                    //3 bits AIM
+                    sendBarcodeInfo(data.copyOfRange(3, length), String(data, 0, 3))
+                } else {
+                    if (length == ZebraScanner.DECODE_STATUS_TIMEOUT)
+                        notifyTimeout()
+                    else if (length == ZebraScanner.DECODE_STATUS_CANCELED || length == ZebraScanner.DECODE_STATUS_ERROR)
+                        notifyCancel()
+                }
+            }
+
+            override fun onEvent(event: Int, info: Int, data: ByteArray?, reader: ZebraScanner?) {
+
+            }
+        })
+    }
+
     override fun init(): Boolean {
         val result = zebraScanner.openScanner(numberOfCameras - 1)
         if (result != ZebraScanner.BCR_SUCCESS)
@@ -32,49 +73,13 @@ class ZebraDecoder(private val numberOfCameras: Int) : BarcodeDecoder {
     }
 
     override fun startDecode() {
-        startTime = System.currentTimeMillis()
+        super.startDecode()
         zebraScanner.sdlApiStartDecode()
     }
 
     override fun cancelDecode() {
         zebraScanner.sdlApiStopDecode()
     }
-
-    @OptIn(DelicateCoroutinesApi::class)
-    private val flow = callbackFlow {
-        val callback = object : ZebraScanner.DecodeCallback {
-            override fun onDecodeComplete(
-                symbology: Int,
-                length: Int,
-                data: ByteArray,
-                reader: ZebraScanner?
-            ) {
-                if (length > 0) {
-                    //3 bits AIM
-                    trySend(
-                        BarcodeInfo(
-                            data.copyOfRange(3, length),
-                            String(data, 0, 3),
-                            System.currentTimeMillis() - startTime
-                        )
-                    )
-                } else {
-                    if (length == ZebraScanner.DECODE_STATUS_TIMEOUT)
-                        trySend(BarcodeInfo(decodeTime = System.currentTimeMillis() - startTime))
-                    else if (length == ZebraScanner.DECODE_STATUS_CANCELED || length == ZebraScanner.DECODE_STATUS_ERROR)
-                        trySend(BarcodeInfo())
-                }
-            }
-
-            override fun onEvent(event: Int, info: Int, data: ByteArray?, reader: ZebraScanner?) {
-
-            }
-        }
-        zebraScanner.setDecodeCallback(callback)
-        awaitClose {}
-    }.shareIn(GlobalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
-
-    override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
 
     override fun timeout(timeout: Int) {
         // available in 0.1 second increments from 0.5 to 9.9 seconds (value 5 from 99)
@@ -224,8 +229,8 @@ class ZebraDecoder(private val numberOfCameras: Int) : BarcodeDecoder {
                     /***** POST start *****/
                     AustraliaPost.name -> setEnable(291)
                     JapanPostal.name -> setEnable(290)
-                    UKPostal.name-> setEnable(92)
-                    USPostnet.name-> setEnable(89)
+                    UKPostal.name -> setEnable(92)
+                    USPostnet.name -> setEnable(89)
                     /***** POST end *****/
                 }
             }
@@ -277,5 +282,11 @@ class ZebraDecoder(private val numberOfCameras: Int) : BarcodeDecoder {
 
     private fun CodeDetails.setCheckDigitAlgorithm(dwParameter: Int) {
         zebraScanner.sdlApiSetNumParameter(dwParameter, this.algorithm)
+    }
+
+    companion object {
+        val instance: ZebraDecoder by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
+            ZebraDecoder()
+        }
     }
 }

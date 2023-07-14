@@ -67,13 +67,13 @@ object BarcodeInfoUtils {
     }
 
     fun BarcodeInfo.clipboard(context: Context) {
-        formatData?.let {
+        formatData?.apply {
             val clipboardManager =
                 context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboardManager.setPrimaryClip(
                 ClipData.newPlainText(
                     "BarcodeText",
-                    it
+                    this
                 )
             )
         }
@@ -90,8 +90,8 @@ object BarcodeInfoUtils {
 
     private fun BarcodeInfo.toKeyEventsArray(): List<KeyEventEx> {
         val keyList = ArrayList<KeyEventEx>()
-        sourceData?.let {
-            for (byte in it) {
+        sourceData?.apply {
+            for (byte in this) {
                 when (byte.toInt()) {
                     in 65..90 -> keyList.add(KeyEventEx(byte.toInt() - 36, true))
                     in 97..122 -> keyList.add(KeyEventEx(byte.toInt() - 68))

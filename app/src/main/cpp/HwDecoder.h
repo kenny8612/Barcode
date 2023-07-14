@@ -28,6 +28,12 @@ private:
 
     pthread_mutex_t decodeLock{};
 
+    bool supportAIM;
+
+    bool supportLight;
+
+    bool isOpened;
+
 public:
     bool threadExit;
     bool decode;
@@ -60,6 +66,12 @@ public:
     void stop_decode();
 
     void decode_timeout(uint16_t timeout);
+
+    void light(bool enable);
+
+    inline bool isSupportLight() { return  supportLight; }
+
+    inline bool isSupportAIM() { return  supportAIM; }
 };
 
 class HwDecoderContext : public DecoderListener {

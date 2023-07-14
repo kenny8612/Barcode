@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
 
-interface BarcodeDecoder {
+interface Decoder {
     fun init(): Boolean
     fun deInit()
     fun startDecode()

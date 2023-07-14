@@ -11,49 +11,21 @@ import com.hsm.barcode.DecoderException.ResultID.RESULT_ERR_NOTRIGGER
 import com.hsm.barcode.DecoderListener
 import com.hsm.barcode.SymbologyConfig
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_COUNTRY_DATA
 import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.decoder.Code.D1.*
 import org.k.barcode.decoder.Code.D2.*
 import org.k.barcode.decoder.Code.Post.*
-import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
-import java.util.concurrent.LinkedBlockingQueue
-import kotlin.concurrent.thread
 
-class HsmDecoder : BarcodeDecoder, DecoderListener {
+class HsmDecoder private constructor() : BaseDecoder(), DecoderListener {
     private val decoder: Decoder = Decoder()
     private val decodeResult = DecodeResult()
     private var decodeStart = false
     private var decodeTimeout = 5000
-    private var startTime = 0L
-    private val queue = LinkedBlockingQueue<BarcodeInfo>()
-
-    @OptIn(DelicateCoroutinesApi::class)
-    private val flow = callbackFlow<BarcodeInfo> {
-        val thread = thread {
-            while (!Thread.interrupted()) {
-                try {
-                    trySend(queue.take())
-                } catch (e: Exception) {
-                    break
-                }
-            }
-        }
-        awaitClose {
-            thread.interrupt()
-        }
-    }.shareIn(GlobalScope, started = SharingStarted.WhileSubscribed(), replay = 0)
 
     init {
         decoder.setDecoderListeners(this)
@@ -81,33 +53,25 @@ class HsmDecoder : BarcodeDecoder, DecoderListener {
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun startDecode() {
-        if (decodeJob?.isActive == true) return
+        super.startDecode()
+
+        if (decodeJob?.isActive == true)
+            decodeJob?.cancel()
 
         decodeJob = GlobalScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    decodeStart = true
-                    startTime = System.currentTimeMillis()
-                    decoder.waitForDecodeTwo(decodeTimeout, decodeResult)
-                    if (decodeResult.length > 0) {
-                        val aim = ByteArray(3)
-                        aim[0] = ']'.code.toByte()
-                        aim[1] = decoder.barcodeAimID
-                        aim[2] = decoder.barcodeAimModifier
-                        val barcodeInfo = BarcodeInfo(
-                            decodeResult.byteBarcodeData,
-                            String(aim),
-                            System.currentTimeMillis() - startTime
-                        )
-                        queue.put(barcodeInfo)
-                    }
-                } catch (e: DecoderException) {
-                    queue.put(
-                        if (e.errorCode == RESULT_ERR_NOTRIGGER) BarcodeInfo() else BarcodeInfo(
-                            decodeTime = System.currentTimeMillis() - startTime
-                        )
-                    )
+            try {
+                decodeStart = true
+                decoder.waitForDecodeTwo(decodeTimeout, decodeResult)
+                if (decodeResult.length > 0) {
+                    val aim = ByteArray(3)
+                    aim[0] = ']'.code.toByte()
+                    aim[1] = decoder.barcodeAimID
+                    aim[2] = decoder.barcodeAimModifier
+                    sendBarcodeInfo(decodeResult.byteBarcodeData, String(aim))
                 }
+            } catch (e: DecoderException) {
+                if (e.errorCode == RESULT_ERR_NOTRIGGER) notifyCancel()
+                else notifyTimeout()
             }
         }
     }
@@ -116,8 +80,6 @@ class HsmDecoder : BarcodeDecoder, DecoderListener {
         decodeStart = false
         decodeJob?.cancel()
     }
-
-    override fun getBarcodeFlow(): Flow<BarcodeInfo> = flow
 
     override fun timeout(timeout: Int) {
         decodeTimeout = timeout
@@ -212,6 +174,7 @@ class HsmDecoder : BarcodeDecoder, DecoderListener {
                         setEnable(symID)
                         setLCT(symID)
                     }
+
                     ISBN.name -> setEnable(SYM_ISBT)
                     /***** 1D end *****/
 
@@ -385,6 +348,12 @@ class HsmDecoder : BarcodeDecoder, DecoderListener {
             symConfig.Flags = symConfig.Flags or SYMBOLOGY_RSX_ENABLE_MASK
             decoder.setSymbologyConfig(symConfig)
         } catch (_: DecoderException) {
+        }
+    }
+
+    companion object {
+        val instance: HsmDecoder by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
+            HsmDecoder()
         }
     }
 }
