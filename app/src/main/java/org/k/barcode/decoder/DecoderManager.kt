@@ -152,6 +152,11 @@ class DecoderManager private constructor() {
                         decoder.light(msg.obj as Boolean)
                 }
 
+                MSG_DECODER_LIGHT_LEVEL -> {
+                    if (state != DecoderState.Closed)
+                        decoder.lightLevel(msg.obj as LightLevel)
+                }
+
                 MSG_DECODE_TIMEOUT -> {
                     if (state != DecoderState.Closed)
                         decoder.timeout(msg.obj as Int)
@@ -185,11 +190,17 @@ class DecoderManager private constructor() {
         workHandler.obtainMessage(MSG_DECODER_LIGHT, enable).sendToTarget()
     }
 
+    fun setLightLevel(lightLevel: LightLevel) {
+        workHandler.obtainMessage(MSG_DECODER_LIGHT_LEVEL, lightLevel).sendToTarget()
+    }
+
     fun setDecodeTimeout(timeout: Int) {
         workHandler.obtainMessage(MSG_DECODE_TIMEOUT, timeout).sendToTarget()
     }
 
     fun supportLight() = decoder.supportLight()
+
+    fun supportLightLevel() = decoder.supportLightLevel()
 
     fun supportCode() = decoder.supportCode()
 
@@ -216,9 +227,10 @@ class DecoderManager private constructor() {
         private const val MSG_CANCEL_DECODER = 3
         private const val MSG_UPDATE_CODES = 4
         private const val MSG_DECODER_LIGHT = 5
-        private const val MSG_DECODE_TIMEOUT = 6
+        private const val MSG_DECODER_LIGHT_LEVEL = 6
+        private const val MSG_DECODE_TIMEOUT = 7
 
-        private const val MSG_DECODE_RESULT = 7
+        private const val MSG_DECODE_RESULT = 8
     }
 
     enum class DecoderState {

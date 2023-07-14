@@ -44,4 +44,15 @@
         <item>62</item>
         <item>0</item>
     </string-array>
+
+    <string-array name="decoder_light_level_entries">
+        <item>Low</item>
+        <item>Medium</item>
+        <item>High</item>
+    </string-array>
+    <string-array name="decoder_light_level_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
 </resources>

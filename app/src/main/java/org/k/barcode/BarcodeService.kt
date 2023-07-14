@@ -267,6 +267,9 @@ class BarcodeService : Service() {
                 if (it.decoderLight != settings.decoderLight)
                     decoderManager.setLight(it.decoderLight)
 
+                if (it.lightLevel != settings.lightLevel)
+                    decoderManager.setLightLevel(it.lightLevel)
+
                 if (it.broadcastStartDecode != settings.broadcastStartDecode ||
                     it.broadcastStopDecode != settings.broadcastStopDecode
                 ) {
@@ -310,6 +313,7 @@ class BarcodeService : Service() {
                 DecoderEvent.Opened -> {
                     decoderManager.updateCode(codeDetailsList)
                     decoderManager.setLight(settings.decoderLight)
+                    decoderManager.setLightLevel(settings.lightLevel)
                     decoderManager.setDecodeTimeout(DEFAULT_DECODE_TIMEOUT)
                     observeBarcodeFlow()
                     decoderReady = true

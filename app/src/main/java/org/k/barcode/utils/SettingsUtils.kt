@@ -3,6 +3,7 @@ package org.k.barcode.utils
 import android.content.Context
 import org.k.barcode.R
 import org.k.barcode.decoder.DecodeMode
+import org.k.barcode.decoder.LightLevel
 
 object SettingsUtils {
     fun formatMode(context: Context, modeString: String): DecodeMode {
@@ -14,6 +15,17 @@ object SettingsUtils {
             }
         }
         return DecodeMode.InputBox
+    }
+
+    fun formatLightLevel(context: Context, levelString: String): LightLevel {
+        val levelList = context.resources.getStringArray(R.array.decoder_light_level_entries)
+        for ((index, value) in levelList.withIndex()) {
+            if (value == levelString) {
+                val level = context.resources.getStringArray(R.array.decoder_light_level_values)[index]
+                return LightLevel.values()[level.toInt()]
+            }
+        }
+        return LightLevel.Medium
     }
 
     fun formatKeycode(context: Context, keyString: String): Int {

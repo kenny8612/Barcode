@@ -53,12 +53,14 @@ import androidx.compose.ui.window.DialogProperties
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
 import org.k.barcode.decoder.DecoderEvent
+import org.k.barcode.decoder.LightLevel
 import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.DatabaseUtils.send
 import org.k.barcode.utils.SettingsUtils.formatKeycode
+import org.k.barcode.utils.SettingsUtils.formatLightLevel
 import org.k.barcode.utils.SettingsUtils.formatMode
 import org.k.barcode.utils.SettingsUtils.keyCodeToIndex
 
@@ -112,6 +114,14 @@ fun AppSettingsScreen(
             DecoderManager.instance.supportLight()
         ) {
             settings.copy(decoderLight = it).send()
+        }
+        ListSelect(
+            stringResource(id = R.string.decoder_light_level),
+            stringArrayResource(id = R.array.decoder_light_level_entries),
+            stringArrayResource(id = R.array.decoder_light_level_entries)[settings.lightLevel.ordinal],
+            DecoderManager.instance.supportLightLevel()
+        ) {
+            settings.copy(lightLevel = formatLightLevel(context, it)).send()
         }
         ListSelect(
             stringResource(id = R.string.decoder_mode),
@@ -285,6 +295,7 @@ fun ListSelect(
     label: String,
     listValue: Array<String>,
     initValue: String,
+    enable: Boolean = true,
     onSelect: (value: String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -311,7 +322,8 @@ fun ListSelect(
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded)
                 }
             },
-            textStyle = MaterialTheme.typography.bodyMedium
+            textStyle = MaterialTheme.typography.bodyMedium,
+            enabled = enable
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = {
             expanded = false

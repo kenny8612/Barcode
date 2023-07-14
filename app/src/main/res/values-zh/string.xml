@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">扫描</string>
+
+    <string name="scan_test">扫描测试</string>
+    <string name="scan_settings">扫描设置</string>
+    <string name="decoder_sound">提示音</string>
+    <string name="decoder_vibrate">振动</string>
+    <string name="decoder_light">补光</string>
+    <string name="release_decode">松开按键保持扫描</string>
+
+    <string name="decoder_mode">输出模式</string>
+    <string name="decoder_charset">字符编码</string>
+    <string name="decoder_prefix">前缀</string>
+    <string name="decoder_suffix">后缀</string>
+    <string name="attach_keycode">附加内容</string>
+    <string name="decoder_filter_characters">过滤字符</string>
+    <string name="barcode_length_value">长度: %1$d</string>
+    <string name="barcode_aim_value">AIM: %1$s</string>
+    <string name="decode_time_value">时间: %1$d ms</string>
+    <string name="continuous_decode">连续扫描</string>
+    <string name="continuous_decode_interval">连续扫描间隔(ms)</string>
+    <string name="codes_edit">码制编辑</string>
+    <string name="code1D">一维</string>
+    <string name="code2D">二维</string>
+    <string name="others">其他</string>
+    <string name="transmitCheckDigit">Transmit check digit</string>
+    <string name="supplemental2">Supplemental 2</string>
+    <string name="supplemental5">Supplemental 5</string>
+    <string name="restore_settings">恢复默认设置</string>
+    <string name="make_sure_restore_settings">您确认要恢复默认设置?</string>
+    <string name="service_stop">服务已停止</string>
+    <string name="service_start">服务正在运行</string>
+    <string name="scan_service">扫描服务</string>
+    <string name="scan">扫描</string>
+    <string name="transmit_no_preamble">Transmit no preamble</string>
+    <string name="transmit_system_character_only">Transmit system character only</string>
+    <string name="transmit_system_character_and_country_code">Transmit system character and country code</string>
+    <string name="min_length">最小长度</string>
+    <string name="max_length">最大长度</string>
+    <string name="save_code">保存</string>
+    <string name="start_stop_characters">Start/Stop characters</string>
+    <string name="full_ascii">Full ascii</string>
+    <string name="checkDigit">Check digit</string>
+    <string name="broadcast_edit">广播编辑</string>
+    <string name="action_start_decode">启动扫描广播</string>
+    <string name="action_stop_decode">停止扫描广播</string>
+    <string name="action_decode_data">扫描数据广播</string>
+    <string name="extra_decode_data_byte">广播附加内容(byte[])</string>
+    <string name="extra_decode_data_string">广播附加内容(String)</string>
+    <string name="mod10_mod10">MOD 10/MOD 10</string>
+    <string name="mod10_mod11">MOD 10/MOD 11</string>
+    <string name="algorithm_close">关闭</string>
+    <string name="check_mode">Check mode</string>
+    <string name="decoder_light_level">灯光等级</string>
+</resources>

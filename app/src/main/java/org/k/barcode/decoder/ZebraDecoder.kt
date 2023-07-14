@@ -30,7 +30,7 @@ import org.k.barcode.decoder.Code.Post.UKPostal
 import org.k.barcode.decoder.Code.Post.USPostnet
 import org.k.barcode.model.CodeDetails
 
-class ZebraDecoder private constructor(): BaseDecoder() {
+class ZebraDecoder private constructor() : BaseDecoder() {
     private val zebraScanner = ZebraScanner()
 
     init {
@@ -94,9 +94,19 @@ class ZebraDecoder private constructor(): BaseDecoder() {
         zebraScanner.sdlApiSetNumParameter(306, value)
     }
 
+    override fun lightLevel(lightLevel: LightLevel) {
+        when (lightLevel) {
+            LightLevel.Low -> zebraScanner.sdlApiSetNumParameter(764, 1)
+            LightLevel.Medium -> zebraScanner.sdlApiSetNumParameter(764, 5)
+            LightLevel.High -> zebraScanner.sdlApiSetNumParameter(764, 10)
+        }
+    }
+
     override fun supportLight(): Boolean = true
 
     override fun supportCode(): Boolean = true
+
+    override fun supportLightLevel(): Boolean = true
 
     override fun updateCode(codeDetails: List<CodeDetails>) {
         codeDetails.forEach {

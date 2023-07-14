@@ -3,13 +3,10 @@
 
     <string name="scan_test">Scan Test</string>
     <string name="scan_settings">Scan Settings</string>
-    <string name="close">Close</string>
-    <string name="open">Open</string>
     <string name="decoder_sound">Sound</string>
     <string name="decoder_vibrate">Vibrate</string>
     <string name="decoder_light">Light</string>
     <string name="release_decode">Release key keep scanning</string>
-
     <string name="decoder_mode">Out mode</string>
     <string name="decoder_charset">Character encode</string>
     <string name="decoder_prefix">Prefix</string>
@@ -25,7 +22,6 @@
     <string name="code1D">1D</string>
     <string name="code2D">2D</string>
     <string name="others">Others</string>
-    <string name="save_code_parameter">Save</string>
     <string name="transmitCheckDigit">Transmit check digit</string>
     <string name="supplemental2">Supplemental 2</string>
     <string name="supplemental5">Supplemental 5</string>
@@ -35,7 +31,6 @@
     <string name="service_start">Service running</string>
     <string name="scan_service">Scan service</string>
     <string name="scan">Scan</string>
-    <string name="copy_to_clipboard">Copied to clipboard</string>
     <string name="transmit_no_preamble">Transmit no preamble</string>
     <string name="transmit_system_character_only">Transmit system character only</string>
     <string name="transmit_system_character_and_country_code">Transmit system character and country code</string>
@@ -55,4 +50,5 @@
     <string name="mod10_mod11">MOD 10/MOD 11</string>
     <string name="algorithm_close">Close</string>
     <string name="check_mode">Check mode</string>
+    <string name="decoder_light_level">Light level</string>
 </resources>

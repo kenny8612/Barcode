@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="decoder_mode_entries">
+        <item>输入框</item>
+        <item>广播</item>
+        <item>模拟键盘</item>
+        <item>剪切板</item>
+    </string-array>
+    <string-array name="attach_keycode_entries">
+        <item>回车</item>
+        <item>Tab</item>
+        <item>空格</item>
+        <item>N/A</item>
+    </string-array>
+    <string-array name="decoder_light_level_entries">
+        <item>低</item>
+        <item>中等</item>
+        <item>高</item>
+    </string-array>
+</resources>

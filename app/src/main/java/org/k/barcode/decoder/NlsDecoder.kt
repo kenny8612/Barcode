@@ -7,35 +7,9 @@ import com.dawn.decoderapijni.SoftEngine.SCN_EVENT_DEC_TIMEOUT
 import org.k.barcode.AppContent.Companion.app
 import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_COUNTRY_DATA
 import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
-import org.k.barcode.decoder.Code.D1.CodaBar
-import org.k.barcode.decoder.Code.D1.Code11
-import org.k.barcode.decoder.Code.D1.Code128
-import org.k.barcode.decoder.Code.D1.Code39
-import org.k.barcode.decoder.Code.D1.Code49
-import org.k.barcode.decoder.Code.D1.Code93
-import org.k.barcode.decoder.Code.D1.Composite
-import org.k.barcode.decoder.Code.D1.EAN13
-import org.k.barcode.decoder.Code.D1.EAN8
-import org.k.barcode.decoder.Code.D1.INT25
-import org.k.barcode.decoder.Code.D1.ISBN
-import org.k.barcode.decoder.Code.D1.MSI
-import org.k.barcode.decoder.Code.D1.Matrix25
-import org.k.barcode.decoder.Code.D1.RSS
-import org.k.barcode.decoder.Code.D1.UCC_EAN128
-import org.k.barcode.decoder.Code.D1.UPC_A
-import org.k.barcode.decoder.Code.D1.UPC_E
-import org.k.barcode.decoder.Code.D2.Aztec
-import org.k.barcode.decoder.Code.D2.DataMatrix
-import org.k.barcode.decoder.Code.D2.DotCode
-import org.k.barcode.decoder.Code.D2.GridMatrix
-import org.k.barcode.decoder.Code.D2.HanXin
-import org.k.barcode.decoder.Code.D2.MaxiCode
-import org.k.barcode.decoder.Code.D2.MicroPDF
-import org.k.barcode.decoder.Code.D2.PDF417
-import org.k.barcode.decoder.Code.D2.QR
-import org.k.barcode.decoder.Code.Post.AustraliaPost
-import org.k.barcode.decoder.Code.Post.ChinaPost
-import org.k.barcode.decoder.Code.Post.JapanPostal
+import org.k.barcode.decoder.Code.D1.*
+import org.k.barcode.decoder.Code.D2.*
+import org.k.barcode.decoder.Code.Post.*
 import org.k.barcode.model.CodeDetails
 
 class NlsDecoder private constructor() : BaseDecoder() {
@@ -47,23 +21,19 @@ class NlsDecoder private constructor() : BaseDecoder() {
         softEngine.setScanningCallback { eventCode, _, param2, length ->
             when (eventCode) {
                 SCN_EVENT_DEC_SUCC -> {
-                    val buffer = ByteArray(length - 128)
-                    System.arraycopy(param2, 128, buffer, 0, length - 128)
                     for ((index, value) in param2.withIndex()) {
                         if (value.toInt() == 0) {
-                            sendBarcodeInfo(sourceData = buffer, aim = String(param2, 0, index))
+                            sendBarcodeInfo(
+                                sourceData = param2.copyOfRange(128, length),
+                                aim = String(param2, 0, index)
+                            )
                             break
                         }
                     }
                 }
 
-                SCN_EVENT_DEC_TIMEOUT -> {
-                    notifyTimeout()
-                }
-
-                else -> {
-                    notifyCancel()
-                }
+                SCN_EVENT_DEC_TIMEOUT -> notifyTimeout()
+                else -> notifyCancel()
             }
             0
         }
@@ -96,6 +66,7 @@ class NlsDecoder private constructor() : BaseDecoder() {
     override fun supportLight(): Boolean = true
 
     override fun supportCode(): Boolean = true
+    override fun supportLightLevel(): Boolean = true
 
     override fun updateCode(codeDetails: List<CodeDetails>) {
         codeDetails.forEach {
@@ -193,6 +164,14 @@ class NlsDecoder private constructor() : BaseDecoder() {
 
     override fun light(enable: Boolean) {
         softEngine.illuminationEnable = if (enable) 1 else 0
+    }
+
+    override fun lightLevel(lightLevel: LightLevel) {
+        when (lightLevel) {
+            LightLevel.Low -> softEngine.expectBrightness = 40
+            LightLevel.Medium -> softEngine.expectBrightness = 160
+            LightLevel.High -> softEngine.expectBrightness = 250
+        }
     }
 
     override fun timeout(timeout: Int) {

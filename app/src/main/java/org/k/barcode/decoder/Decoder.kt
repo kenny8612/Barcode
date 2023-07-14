@@ -12,7 +12,9 @@ interface Decoder {
     fun getBarcodeFlow(): Flow<BarcodeInfo>
     fun updateCode(codeDetails: List<CodeDetails>) {}
     fun light(enable: Boolean) {}
+    fun lightLevel(lightLevel: LightLevel) {}
     fun timeout(timeout: Int)
     fun supportLight(): Boolean = false
+    fun supportLightLevel(): Boolean = false
     fun supportCode(): Boolean = false
 }

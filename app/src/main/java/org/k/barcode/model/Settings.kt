@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import org.k.barcode.decoder.DecodeMode
+import org.k.barcode.decoder.LightLevel
 
 @Entity(tableName = "settings")
 data class Settings(
@@ -21,6 +22,7 @@ data class Settings(
     @ColumnInfo(name = "decoderFilterCharacters") var decoderFilterCharacters: String = "",
     @ColumnInfo(name = "releaseDecode") var releaseDecode: Boolean = false,
     @ColumnInfo(name = "decoderLight") var decoderLight: Boolean = true,
+    @ColumnInfo(name = "decoderLightLevel") var lightLevel: LightLevel = LightLevel.Medium,
     @ColumnInfo(name = "broadcastStartDecode") var broadcastStartDecode: String = "",
     @ColumnInfo(name = "broadcastStopDecode") var broadcastStopDecode: String = "",
     @ColumnInfo(name = "broadcastDecodeData") var broadcastDecodeData: String = "",

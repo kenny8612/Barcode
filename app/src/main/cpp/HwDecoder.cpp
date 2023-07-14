@@ -149,13 +149,13 @@ bool HwDecoder::open() {
         //enable AIM
         sprintf(buff, "~%c0000#AIDENA1;%c", 0x01, 0x03);
         serialPort->write(buff, strlen(buff));
-        ssize_t rLen = serialPort->read_nb(buff, sizeof(buff), 1000, 0x03);
+        ssize_t rLen = serialPort->read_nb(buff, sizeof(buff), 200, 0x03);
         if (rLen > 0 && buff[rLen - 1] == 0x03)
             supportAIM = true;
 
         sprintf(buff, "~%c0000#ILLSCN1;%c", 0x01, 0x03);
         serialPort->write(buff, strlen(buff));
-        rLen = serialPort->read_nb(buff, sizeof(buff), 1000, 0x03);
+        rLen = serialPort->read_nb(buff, sizeof(buff), 200, 0x03);
         if (rLen > 0 && buff[rLen - 1] == 0x03)
             supportLight = true;
 
@@ -164,7 +164,7 @@ bool HwDecoder::open() {
         serialPort->write(buff, strlen(buff));
         sprintf(buff, "~%c0000#TSUSET0D;%c", 0x01, 0x03);
         serialPort->write(buff, strlen(buff));
-        serialPort->read_nb(buff, sizeof(buff), 1000, 0x03);
+        serialPort->read_nb(buff, sizeof(buff), 200, 0x03);
     }
 
     decode = false;
@@ -310,7 +310,7 @@ void HwDecoder::decode_timeout(uint16_t timeout) {
     sprintf(buff, "~%c0000#ORTSET%hu;%c", 0x01, timeout, 0x03);
     serialPort->write(buff, strlen(buff));
 
-    rLen = serialPort->read_nb(buff, sizeof(buff), 1000, 0x03);
+    rLen = serialPort->read_nb(buff, sizeof(buff), 200, 0x03);
     if (rLen > 0 && buff[rLen - 1] == 0x03)
         decodeTimeout = timeout;
 }
@@ -322,7 +322,7 @@ void HwDecoder::light(bool enable) {
 
     sprintf(buff, "~%c0000#ILLSCN%d;%c", 0x01, enable, 0x03);
     serialPort->write(buff, strlen(buff));
-    serialPort->read_nb(buff, sizeof(buff), 1000, 0x03);
+    serialPort->read_nb(buff, sizeof(buff), 200, 0x03);
 }
 
 HwDecoderContext::HwDecoderContext() {
