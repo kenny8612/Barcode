@@ -53,27 +53,26 @@ import androidx.compose.ui.window.DialogProperties
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
 import org.k.barcode.decoder.DecoderEvent
-import org.k.barcode.decoder.LightLevel
 import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.ui.ShareViewModel
-import org.k.barcode.utils.DatabaseUtils.send
 import org.k.barcode.utils.SettingsUtils.formatKeycode
 import org.k.barcode.utils.SettingsUtils.formatLightLevel
 import org.k.barcode.utils.SettingsUtils.formatMode
 import org.k.barcode.utils.SettingsUtils.keyCodeToIndex
+import org.k.barcode.utils.SettingsUtils.update
 
 @Composable
 fun AppSettingsScreen(
     paddingValues: PaddingValues,
-    shareViewModel: ShareViewModel,
+    viewModel: ShareViewModel,
     onNavigateToCodeSettings: () -> Unit,
     onNavigateToBroadcastSettings: () -> Unit
 ) {
     val context = LocalContext.current
-    val settings by shareViewModel.settings.collectAsState()
-    val decoderEvent by shareViewModel.decoderEvent.collectAsState()
+    val settings by viewModel.settings.collectAsState()
+    val decoderEvent by viewModel.decoderEvent.collectAsState()
 
     Column(
         modifier = Modifier
@@ -86,34 +85,34 @@ fun AppSettingsScreen(
             settings.decoderEnable,
             decoderEvent != DecoderEvent.Error
         ) {
-            settings.copy(decoderEnable = it).send()
+            settings.copy(decoderEnable = it).update(viewModel)
         }
         SwitchEnable(
             stringResource(id = R.string.decoder_vibrate), settings.decoderVibrate,
         ) {
-            settings.copy(decoderVibrate = it).send()
+            settings.copy(decoderVibrate = it).update(viewModel)
         }
         SwitchEnable(
             stringResource(id = R.string.decoder_sound), settings.decoderSound
         ) {
-            settings.copy(decoderSound = it).send()
+            settings.copy(decoderSound = it).update(viewModel)
         }
         SwitchEnable(
             stringResource(id = R.string.continuous_decode), settings.continuousDecode
         ) {
-            settings.copy(continuousDecode = it).send()
+            settings.copy(continuousDecode = it).update(viewModel)
         }
         SwitchEnable(
             stringResource(id = R.string.release_decode), settings.releaseDecode
         ) {
-            settings.copy(releaseDecode = it).send()
+            settings.copy(releaseDecode = it).update(viewModel)
         }
         SwitchEnable(
             stringResource(id = R.string.decoder_light),
             settings.decoderLight,
             DecoderManager.instance.supportLight()
         ) {
-            settings.copy(decoderLight = it).send()
+            settings.copy(decoderLight = it).update(viewModel)
         }
         ListSelect(
             stringResource(id = R.string.decoder_light_level),
@@ -121,21 +120,21 @@ fun AppSettingsScreen(
             stringArrayResource(id = R.array.decoder_light_level_entries)[settings.lightLevel.ordinal],
             DecoderManager.instance.supportLightLevel()
         ) {
-            settings.copy(lightLevel = formatLightLevel(context, it)).send()
+            settings.copy(lightLevel = formatLightLevel(context, it)).update(viewModel)
         }
         ListSelect(
             stringResource(id = R.string.decoder_mode),
             stringArrayResource(id = R.array.decoder_mode_entries),
             stringArrayResource(id = R.array.decoder_mode_entries)[settings.decoderMode.ordinal]
         ) {
-            settings.copy(decoderMode = formatMode(context, it)).send()
+            settings.copy(decoderMode = formatMode(context, it)).update(viewModel)
         }
         ListSelect(
             stringResource(id = R.string.decoder_charset),
             stringArrayResource(id = R.array.decoder_charset_entries),
             settings.decoderCharset
         ) {
-            settings.copy(decoderCharset = it).send()
+            settings.copy(decoderCharset = it).update(viewModel)
         }
         ListSelect(
             stringResource(id = R.string.attach_keycode),
@@ -144,23 +143,23 @@ fun AppSettingsScreen(
                 context, settings.attachKeycode
             )]
         ) {
-            settings.copy(attachKeycode = formatKeycode(context, it)).send()
+            settings.copy(attachKeycode = formatKeycode(context, it)).update(viewModel)
         }
         EditViewText(
             stringResource(id = R.string.decoder_prefix), settings.decoderPrefix
         ) {
-            settings.copy(decoderPrefix = it).send()
+            settings.copy(decoderPrefix = it).update(viewModel)
         }
         EditViewText(
             stringResource(id = R.string.decoder_suffix), settings.decodeSuffix
         ) {
-            settings.copy(decodeSuffix = it).send()
+            settings.copy(decodeSuffix = it).update(viewModel)
         }
         EditViewText(
             stringResource(id = R.string.decoder_filter_characters),
             settings.decoderFilterCharacters
         ) {
-            settings.copy(decoderFilterCharacters = it).send()
+            settings.copy(decoderFilterCharacters = it).update(viewModel)
         }
         EditViewNumber(
             stringResource(id = R.string.continuous_decode_interval),
@@ -168,7 +167,7 @@ fun AppSettingsScreen(
             200,
             10 * 1000
         ) {
-            settings.copy(continuousDecodeInterval = it).send()
+            settings.copy(continuousDecodeInterval = it).update(viewModel)
         }
         CodesEditView(
             DecoderManager.instance.supportCode(),

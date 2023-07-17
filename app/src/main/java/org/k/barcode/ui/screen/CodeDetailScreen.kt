@@ -36,10 +36,10 @@ import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.R
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.ShareViewModel
-import org.k.barcode.utils.DatabaseUtils.send
 import org.k.barcode.decoder.Code.D1.*
 import org.k.barcode.decoder.Code.D2.*
 import org.k.barcode.decoder.Code.Post.*
+import org.k.barcode.utils.SettingsUtils.update
 
 @Composable
 fun CodeDetailScreen(
@@ -103,7 +103,7 @@ fun CodeDetailScreen(
                 .height(75.dp)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             onClick = {
-                codeDetails.send()
+                codeDetails.update(shareViewModel)
                 onSave.invoke()
             }
         ) {

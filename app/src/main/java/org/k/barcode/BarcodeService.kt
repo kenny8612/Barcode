@@ -45,7 +45,6 @@ import org.greenrobot.eventbus.ThreadMode
 import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.AppContent.Companion.app
 import org.k.barcode.AppContent.Companion.prefs
-import org.k.barcode.data.AppDatabase
 import org.k.barcode.data.DatabaseRepository
 import org.k.barcode.data.DecoderRepository
 import org.k.barcode.decoder.DecodeMode
@@ -62,7 +61,6 @@ import org.k.barcode.utils.BarcodeInfoUtils.clipboard
 import org.k.barcode.utils.BarcodeInfoUtils.injectInputBox
 import org.k.barcode.utils.BarcodeInfoUtils.simulate
 import org.k.barcode.utils.BarcodeInfoUtils.transformData
-import org.k.barcode.utils.DatabaseUtils.update
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -71,9 +69,6 @@ import javax.inject.Inject
 class BarcodeService : Service() {
     @Inject
     lateinit var databaseRepository: DatabaseRepository
-
-    @Inject
-    lateinit var appDatabase: AppDatabase
 
     @Inject
     lateinit var decoderRepository: DecoderRepository
@@ -106,8 +101,8 @@ class BarcodeService : Service() {
     private var screenState = true
     private var cameraState = false
     private var lastDecoderTime = 0L
-    private var decoderReady = false
     private var numberOfCameras = 0
+
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
@@ -137,12 +132,27 @@ class BarcodeService : Service() {
         numberOfCameras = cameraManager.cameraIdList.size
 
         setupNotification()
-        loadSettingsData()
-        backupSettingsData()
-        settings.decoderEnable = false
+
+        runBlocking {
+            settings = databaseRepository.getSettings()
+            codeDetailsList = databaseRepository.getCodes()
+            if (!prefs.getBoolean("settings_backup_done", false)) {
+                prefs.edit()
+                    .putString("settings_backup", Gson().toJson(settings))
+                    .putBoolean("settings_backup_done", true)
+                    .apply()
+            }
+            if (!prefs.getBoolean("codes_backup_done", false)) {
+                prefs.edit()
+                    .putString("codes_backup", Gson().toJson(codeDetailsList))
+                    .putBoolean("codes_backup_done", true)
+                    .apply()
+            }
+            settings.decoderEnable = false
+            codeDetailsList = emptyList()
+        }
 
         observeDecoderEventFlow()
-        observeCodesFlow()
         observeSettingsFlow()
 
         val intentFilter = IntentFilter()
@@ -153,7 +163,6 @@ class BarcodeService : Service() {
 
         registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
 
-        registerDecodeReceiver(settings)
         if (decoderManager.supportCode())
             registerReceiver(cameraStateReceiver, IntentFilter(ACTION_CAMERA_STATUS))
         /** for sdk **/
@@ -168,14 +177,10 @@ class BarcodeService : Service() {
         soundPool.release()
         notificationManager.cancelAll()
         notificationManager.deleteNotificationChannel(BARCODE_CHANNEL_ID)
-
         cancelDecoderEventFlow()
-        cancelCodesFlow()
         cancelSettingsDataFlow()
         unregisterReceiver(screenReceiver)
         unregisterReceiver(scannerKeyReceiver)
-
-        unregisterDecodeReceiver()
         if (decoderManager.supportCode())
             unregisterReceiver(cameraStateReceiver)
         unregisterReceiver(decoderSettingsReceiver)
@@ -219,28 +224,6 @@ class BarcodeService : Service() {
         notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
     }
 
-    private fun loadSettingsData() {
-        runBlocking {
-            settings = appDatabase.settingsDao().get()
-            codeDetailsList = appDatabase.codeDetailDDao().getCodes()
-        }
-    }
-
-    private fun backupSettingsData() {
-        if (!prefs.getBoolean("settings_backup_done", false)) {
-            prefs.edit()
-                .putString("settings_backup", Gson().toJson(settings))
-                .putBoolean("settings_backup_done", true)
-                .apply()
-        }
-        if (!prefs.getBoolean("codes_backup_done", false)) {
-            prefs.edit()
-                .putString("codes_backup", Gson().toJson(codeDetailsList))
-                .putBoolean("codes_backup_done", true)
-                .apply()
-        }
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, notification)
         return START_STICKY
@@ -253,7 +236,8 @@ class BarcodeService : Service() {
         settingsFlow = databaseRepository.getSettingsFlow().onEach {
             if (it.decoderEnable != settings.decoderEnable) {
                 if (it.decoderEnable) {
-                    decoderManager.open()
+                    if (!cameraState && screenState)
+                        decoderManager.open()
                 } else {
                     decoderManager.cancelDecode()
                     decoderManager.close()
@@ -294,8 +278,7 @@ class BarcodeService : Service() {
             }
             if (diffCodesList.isNotEmpty()) {
                 codeDetailsList = it
-                if (settings.decoderEnable)
-                    decoderManager.updateCode(diffCodesList)
+                decoderManager.updateCode(diffCodesList)
             }
         }.launchIn(CoroutineScope(Dispatchers.IO))
     }
@@ -308,30 +291,33 @@ class BarcodeService : Service() {
         if (decoderEventFlow?.isActive == true)
             return
 
-        decoderEventFlow = decoderRepository.getEvent().onEach {
-            when (it) {
+        decoderEventFlow = decoderRepository.getEvent().onEach { event ->
+            when (event) {
                 DecoderEvent.Opened -> {
-                    decoderManager.updateCode(codeDetailsList)
                     decoderManager.setLight(settings.decoderLight)
                     decoderManager.setLightLevel(settings.lightLevel)
                     decoderManager.setDecodeTimeout(DEFAULT_DECODE_TIMEOUT)
+                    if (decoderManager.supportCode())
+                        observeCodesFlow()
                     observeBarcodeFlow()
-                    decoderReady = true
+                    registerDecodeReceiver(settings)
                     updateNotification(serviceStart = true)
                 }
 
                 DecoderEvent.Closed -> {
-                    decoderReady = false
-                    updateNotification(serviceStart = false)
-                    cancelBarcodeFlows()
                     continuousDecodeState = ContinuousDecodeState.Stop
+                    if (decoderManager.supportCode())
+                        cancelCodesFlow()
+                    cancelBarcodeFlows()
+                    unregisterDecodeReceiver()
+                    updateNotification(serviceStart = false)
                 }
 
+                DecoderEvent.Unknown -> {}
+
                 DecoderEvent.Error -> {
-                    if (settings.decoderEnable) {
-                        settings.decoderEnable = false
-                        settings.update(appDatabase)
-                    }
+                    settings.decoderEnable = false
+                    databaseRepository.updateSettings(settings.copy())
                 }
             }
         }.launchIn(CoroutineScope(Dispatchers.IO))
@@ -442,8 +428,12 @@ class BarcodeService : Service() {
             if (ACTION_SCANNER_SETTINGS == intent?.action) {
                 if (intent.hasExtra("out_mode")) {
                     val mode = intent.getIntExtra("out_mode", 0)
-                    if (mode != settings.decoderMode.ordinal)
-                        settings.copy(decoderMode = DecodeMode.values()[mode]).update(appDatabase)
+                    if (mode != settings.decoderMode.ordinal) {
+                        settings.decoderMode = DecodeMode.values()[mode]
+                        runBlocking {
+                            databaseRepository.updateSettings(settings)
+                        }
+                    }
                 }
             }
         }
@@ -454,10 +444,9 @@ class BarcodeService : Service() {
             if (!settings.decoderEnable) return
 
             if (ACTION_CAMERA_STATUS == intent?.action) {
-                cameraState = intent.getBooleanExtra("state", false)
                 val cameraId = intent.getStringExtra("cameraId")?.toInt()
-
                 if (cameraId != numberOfCameras - 1) {
+                    cameraState = intent.getBooleanExtra("state", false)
                     if (cameraState) {
                         cancelOpenDecoderDelayJob()
                         decoderManager.cancelDecode()
@@ -519,11 +508,8 @@ class BarcodeService : Service() {
         if (!settings.decoderEnable
             || !isScreenOn()
             || isScreenLocked()
-            || !decoderReady
+            || System.currentTimeMillis() - lastDecoderTime < DOUBLE_DECODE_MIN_INTERVAL
         ) return
-
-        if (System.currentTimeMillis() - lastDecoderTime < DOUBLE_DECODE_MIN_INTERVAL)
-            return
 
         lastDecoderTime = System.currentTimeMillis()
 
@@ -541,7 +527,7 @@ class BarcodeService : Service() {
     }
 
     private fun cancelDecode() {
-        if (settings.decoderEnable && decoderReady) {
+        if (settings.decoderEnable) {
             decoderManager.cancelDecode()
             continuousDecodeState = ContinuousDecodeState.Stop
         }
@@ -562,41 +548,39 @@ class BarcodeService : Service() {
         }
     }
 
-    @Subscribe(threadMode = ThreadMode.POSTING, sticky = true)
+    @Subscribe(threadMode = ThreadMode.POSTING)
     fun onEventMessage(event: MessageEvent) {
         when (event.message) {
-            Message.UpdateSettings -> (event.arg1 as Settings).update(appDatabase)
-            Message.UpdateCode -> (event.arg1 as CodeDetails).update(appDatabase)
             Message.RestoreSettings -> restoreSettings()
-            Message.CloseDecoder -> decoderManager.close()
             Message.StartDecode -> startDecode()
+            Message.CloseDecoder -> decoderManager.close()
         }
-        EventBus.getDefault().removeStickyEvent(event)
     }
 
     private fun restoreSettings() {
-        val gson = Gson()
-
-        gson.fromJson<List<CodeDetails>>(
-            prefs.getString("codes_backup", ""),
-            object : TypeToken<List<CodeDetails>>() {}.type
-        )?.apply {
-            if (this != codeDetailsList) {
-                cancelCodesFlow()
-                update(appDatabase)
-                runBlocking {
-                    delay(500)
-                    observeCodesFlow()
+        CoroutineScope(Dispatchers.Default).launch {
+            val gson = Gson()
+            gson.fromJson<List<CodeDetails>>(
+                prefs.getString("codes_backup", ""),
+                object : TypeToken<List<CodeDetails>>() {}.type
+            )?.apply {
+                if (this != codeDetailsList) {
+                    val diffList = this.filter {
+                        !codeDetailsList.contains(it)
+                    }
+                    diffList.forEach {
+                        databaseRepository.updateCode(it)
+                    }
                 }
             }
-        }
 
-        gson.fromJson(
-            prefs.getString("settings_backup", ""),
-            Settings::class.java
-        )?.apply {
-            if (this != settings)
-                update(appDatabase)
+            gson.fromJson(
+                prefs.getString("settings_backup", ""),
+                Settings::class.java
+            )?.apply {
+                if (this != settings)
+                    databaseRepository.updateSettings(this)
+            }
         }
     }
 

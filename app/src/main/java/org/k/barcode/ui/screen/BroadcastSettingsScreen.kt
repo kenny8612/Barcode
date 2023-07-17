@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.k.barcode.R
 import org.k.barcode.ui.ShareViewModel
-import org.k.barcode.utils.DatabaseUtils.send
+import org.k.barcode.utils.SettingsUtils.update
 
 @Composable
 fun BroadcastSettingsScreen(
@@ -88,7 +88,7 @@ fun BroadcastSettingsScreen(
                         broadcastDecodeData = broadcastDecodeData.value,
                         broadcastDecodeDataByte = broadcastDecodeDataByte.value,
                         broadcastDecodeDataString = broadcastDecodeDataString.value
-                    ).send()
+                    ).update(shareViewModel)
                     onSave.invoke()
                 }
             },

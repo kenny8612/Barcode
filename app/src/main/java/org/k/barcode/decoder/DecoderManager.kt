@@ -24,7 +24,7 @@ class DecoderManager private constructor() {
 
     private var barcodeDataJob: Job? = null
 
-    private val _eventFlow = MutableStateFlow(DecoderEvent.Closed)
+    private val _eventFlow = MutableStateFlow(DecoderEvent.Unknown)
     private val eventFlow: StateFlow<DecoderEvent> = _eventFlow.asStateFlow()
 
     private var decoder: Decoder

@@ -22,8 +22,8 @@ android {
         applicationId "org.k.barcode"
         minSdk 29
         targetSdk 33
-        versionCode 119
-        versionName "1.2.1"
+        versionCode 123
+        versionName "1.2.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

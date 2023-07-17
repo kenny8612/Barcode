@@ -26,7 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ShareViewModel @Inject constructor(
     application: Application,
-    databaseRepository: DatabaseRepository,
+    private val databaseRepository: DatabaseRepository,
     decoderRepository: DecoderRepository,
 ) : AndroidViewModel(application) {
     private val _settings = MutableStateFlow(Settings())
@@ -63,19 +63,31 @@ class ShareViewModel @Inject constructor(
             }.launchIn(viewModelScope)
         }
         viewModelScope.launch {
-            databaseRepository.getCodesFlow(Constant.CODE_1D).onEach {
+            databaseRepository.getCodes(Constant.CODE_1D).onEach {
                 _code1D.value = it
             }.launchIn(viewModelScope)
         }
         viewModelScope.launch {
-            databaseRepository.getCodesFlow(Constant.CODE_2D).onEach {
+            databaseRepository.getCodes(Constant.CODE_2D).onEach {
                 _code2D.value = it
             }.launchIn(viewModelScope)
         }
         viewModelScope.launch {
-            databaseRepository.getCodesFlow(Constant.CODE_OTHERS).onEach {
+            databaseRepository.getCodes(Constant.CODE_OTHERS).onEach {
                 _codeOthers.value = it
             }.launchIn(viewModelScope)
+        }
+    }
+
+    fun updateSettings(settings: Settings) {
+        viewModelScope.launch {
+            databaseRepository.updateSettings(settings)
+        }
+    }
+
+    fun updateCode(codeDetails: CodeDetails) {
+        viewModelScope.launch {
+            databaseRepository.updateCode(codeDetails)
         }
     }
 }

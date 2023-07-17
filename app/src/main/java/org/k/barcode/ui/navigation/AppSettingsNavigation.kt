@@ -16,7 +16,7 @@ fun NavGraphBuilder.appSettingsScreen(
     composable(route = Screen.AppSettings.route) {
         AppSettingsScreen(
             paddingValues = paddingValues,
-            shareViewModel = shareViewModel,
+            viewModel = shareViewModel,
             onNavigateToCodeSettings = onNavigateToCodeSettings,
             onNavigateToBroadcastSettings = onNavigateToBroadcastSettings
         )

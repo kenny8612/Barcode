@@ -33,7 +33,7 @@ import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
 import org.k.barcode.model.CodeDetails
 import org.k.barcode.ui.ShareViewModel
-import org.k.barcode.utils.DatabaseUtils.send
+import org.k.barcode.utils.SettingsUtils.update
 
 @Composable
 fun CodeSettingsScreen(
@@ -57,6 +57,7 @@ fun CodeSettingsScreen(
             CODE_1D -> {
                 CodeListUI(
                     code1DList.value,
+                    shareViewModel,
                     onNavigateToCodeDetails
                 )
             }
@@ -64,6 +65,7 @@ fun CodeSettingsScreen(
             CODE_2D -> {
                 CodeListUI(
                     code2DList.value,
+                    shareViewModel,
                     onNavigateToCodeDetails
                 )
             }
@@ -71,6 +73,7 @@ fun CodeSettingsScreen(
             CODE_OTHERS -> {
                 CodeListUI(
                     codeOthersDList.value,
+                    shareViewModel,
                     onNavigateToCodeDetails
                 )
             }
@@ -133,6 +136,7 @@ fun CodeTypeTitle(currentIndex: Int, onClick: (selectIndex: Int) -> Unit) {
 @Composable
 fun CodeListUI(
     codeList: List<CodeDetails>,
+    shareViewModel: ShareViewModel,
     onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
     val scrollerLazyStata = rememberLazyListState()
@@ -142,6 +146,7 @@ fun CodeListUI(
             items(codeList) {
                 CodeItem(
                     codeDetails = it,
+                    shareViewModel = shareViewModel,
                     onNavigateToCodeDetails = onNavigateToCodeDetails
                 )
             }
@@ -152,6 +157,7 @@ fun CodeListUI(
 @Composable
 fun CodeItem(
     codeDetails: CodeDetails,
+    shareViewModel: ShareViewModel,
     onNavigateToCodeDetails: (codeDetails: CodeDetails) -> Unit
 ) {
     Card(
@@ -181,7 +187,7 @@ fun CodeItem(
                     .padding(end = 4.dp),
                 checked = codeDetails.enable,
                 onCheckedChange = {
-                    codeDetails.copy(enable = it).send()
+                    codeDetails.copy(enable = it).update(shareViewModel)
                 }
             )
         }

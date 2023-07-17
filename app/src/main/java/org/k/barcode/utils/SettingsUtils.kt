@@ -4,6 +4,9 @@ import android.content.Context
 import org.k.barcode.R
 import org.k.barcode.decoder.DecodeMode
 import org.k.barcode.decoder.LightLevel
+import org.k.barcode.model.CodeDetails
+import org.k.barcode.model.Settings
+import org.k.barcode.ui.ShareViewModel
 
 object SettingsUtils {
     fun formatMode(context: Context, modeString: String): DecodeMode {
@@ -47,5 +50,13 @@ object SettingsUtils {
                 return index
         }
         return 0
+    }
+
+    fun Settings.update(viewModel: ShareViewModel) {
+        viewModel.updateSettings(this)
+    }
+
+    fun CodeDetails.update(viewModel: ShareViewModel) {
+        viewModel.updateCode(this)
     }
 }
