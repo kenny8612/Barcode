@@ -25,7 +25,7 @@ bool SerialPort::open(const char *serial_path, int baud) {
         return false;
     }
     config(baud);
-    DBG("native_open serial %d", mSerial);
+    DBG("open serial %s", serial_path);
     return true;
 }
 

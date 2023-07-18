@@ -9,7 +9,7 @@ interface Decoder {
     fun deInit()
     fun startDecode()
     fun cancelDecode()
-    fun getBarcodeFlow(): Flow<BarcodeInfo>
+    fun getBarcode(): Flow<BarcodeInfo>
     fun updateCode(codeDetails: List<CodeDetails>) {}
     fun light(enable: Boolean) {}
     fun lightLevel(lightLevel: LightLevel) {}

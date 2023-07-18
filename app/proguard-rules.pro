@@ -56,6 +56,8 @@
 
 -keep class org.k.barcode.** { *; }
 -keep class com.dawn.decoderapijni.** { *; }
+-keep class com.hsm.barcode.** { *; }
+-keep class com.zebra.** { *; }
 
 ##---------------Begin: proguard configuration for greenrobot ----------
 -dontwarn com.orhanobut.logger.**

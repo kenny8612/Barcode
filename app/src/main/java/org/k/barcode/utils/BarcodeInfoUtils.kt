@@ -38,7 +38,7 @@ object BarcodeInfoUtils {
 
     fun BarcodeInfo.injectInputBox(context: Context, settings: Settings) {
         val intent = Intent(ACTION_INPUT_INJECT)
-        intent.putExtra("content", this.formatData)
+        intent.putExtra("content", formatData)
         intent.putExtra("simulateKeyboard", settings.attachKeycode != 0)
         intent.putExtra("simulateKeyboard_keycode", settings.attachKeycode)
         intent.putExtra("deleteSurroundingText", false)
@@ -49,10 +49,10 @@ object BarcodeInfoUtils {
 
     fun BarcodeInfo.broadcast(context: Context, settings: Settings) {
         val intent = Intent(settings.broadcastDecodeData)
-        intent.putExtra(settings.broadcastDecodeDataByte, this.sourceData)
-        intent.putExtra(settings.broadcastDecodeDataString, this.formatData)
-        intent.putExtra("decode_time", this.decodeTime)
-        intent.putExtra("aim_string", this.aim)
+        intent.putExtra(settings.broadcastDecodeDataByte, sourceData)
+        intent.putExtra(settings.broadcastDecodeDataString, formatData)
+        intent.putExtra("decode_time", decodeTime)
+        intent.putExtra("aim_string", aim)
         context.sendBroadcast(intent)
     }
 

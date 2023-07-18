@@ -31,7 +31,7 @@ abstract class BaseDecoder : Decoder {
         startDecodeTime = System.currentTimeMillis()
     }
 
-    override fun getBarcodeFlow(): Flow<BarcodeInfo> = barcodeFlow
+    override fun getBarcode(): Flow<BarcodeInfo> = barcodeFlow
 
     fun sendBarcodeInfo(sourceData: ByteArray, aim: String? = null) {
         _barcodeFlow.tryEmit(

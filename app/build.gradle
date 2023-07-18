@@ -22,8 +22,8 @@ android {
         applicationId "org.k.barcode"
         minSdk 29
         targetSdk 33
-        versionCode 123
-        versionName "1.2.3"
+        versionCode 124
+        versionName "1.2.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -79,6 +79,12 @@ android {
             path file('src/main/cpp/CMakeLists.txt')
             version '3.22.1'
         }
+    }
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                outputFileName = "Barcode.apk"
+            }
     }
 }
 

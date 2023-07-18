@@ -8,7 +8,7 @@ import org.k.barcode.model.BarcodeInfo
 import javax.inject.Inject
 
 class DecoderRepository @Inject constructor(private val decoderManager: DecoderManager) {
-    fun getEvent(): StateFlow<DecoderEvent> = decoderManager.getEventFlow()
+    fun getEvent(): StateFlow<DecoderEvent> = decoderManager.getEvent()
 
-    fun getBarcode(): Flow<BarcodeInfo> = decoderManager.getBarcodeFlow()
+    fun getBarcode(): Flow<BarcodeInfo> = decoderManager.getBarcode()
 }

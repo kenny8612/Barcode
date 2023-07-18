@@ -4,13 +4,14 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Message
 import android.util.Log
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.CodeDetails
@@ -24,7 +25,7 @@ class DecoderManager private constructor() {
 
     private var barcodeDataJob: Job? = null
 
-    private val _eventFlow = MutableStateFlow(DecoderEvent.Unknown)
+    private val _eventFlow = MutableStateFlow(DecoderEvent.Closed)
     private val eventFlow: StateFlow<DecoderEvent> = _eventFlow.asStateFlow()
 
     private var decoder: Decoder
@@ -61,15 +62,12 @@ class DecoderManager private constructor() {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     private fun observeBarcodeDataFlow() {
         if (barcodeDataJob?.isActive == true) return
 
-        barcodeDataJob = GlobalScope.launch {
-            getBarcodeFlow().collect {
-                workHandler.obtainMessage(MSG_DECODE_RESULT, it).sendToTarget()
-            }
-        }
+        getBarcode().onEach {
+            workHandler.obtainMessage(MSG_DECODE_RESULT, it).sendToTarget()
+        }.launchIn(CoroutineScope(Dispatchers.IO))
     }
 
     private fun cancelBarcodeDataFlow() {
@@ -204,9 +202,9 @@ class DecoderManager private constructor() {
 
     fun supportCode() = decoder.supportCode()
 
-    fun getBarcodeFlow() = decoder.getBarcodeFlow()
+    fun getBarcode() = decoder.getBarcode()
 
-    fun getEventFlow() = eventFlow
+    fun getEvent() = eventFlow
 
     companion object {
         val instance: DecoderManager by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {

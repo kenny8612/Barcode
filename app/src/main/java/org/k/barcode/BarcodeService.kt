@@ -30,10 +30,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -46,7 +45,6 @@ import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.AppContent.Companion.app
 import org.k.barcode.AppContent.Companion.prefs
 import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.data.DecoderRepository
 import org.k.barcode.decoder.DecodeMode
 import org.k.barcode.decoder.DecoderEvent
 import org.k.barcode.decoder.DecoderManager
@@ -69,9 +67,6 @@ import javax.inject.Inject
 class BarcodeService : Service() {
     @Inject
     lateinit var databaseRepository: DatabaseRepository
-
-    @Inject
-    lateinit var decoderRepository: DecoderRepository
 
     @Inject
     lateinit var decoderManager: DecoderManager
@@ -133,25 +128,7 @@ class BarcodeService : Service() {
 
         setupNotification()
 
-        runBlocking {
-            settings = databaseRepository.getSettings()
-            codeDetailsList = databaseRepository.getCodes()
-            if (!prefs.getBoolean("settings_backup_done", false)) {
-                prefs.edit()
-                    .putString("settings_backup", Gson().toJson(settings))
-                    .putBoolean("settings_backup_done", true)
-                    .apply()
-            }
-            if (!prefs.getBoolean("codes_backup_done", false)) {
-                prefs.edit()
-                    .putString("codes_backup", Gson().toJson(codeDetailsList))
-                    .putBoolean("codes_backup_done", true)
-                    .apply()
-            }
-            settings.decoderEnable = false
-            codeDetailsList = emptyList()
-        }
-
+        runBlocking { initData() }
         observeDecoderEventFlow()
         observeSettingsFlow()
 
@@ -165,11 +142,31 @@ class BarcodeService : Service() {
 
         if (decoderManager.supportCode())
             registerReceiver(cameraStateReceiver, IntentFilter(ACTION_CAMERA_STATUS))
+
         /** for sdk **/
         registerReceiver(decoderSettingsReceiver, IntentFilter(ACTION_SCANNER_SETTINGS))
+        registerDecodeReceiver(settings)
 
         EventBus.getDefault().register(this)
         Log.d(TAG, "barcode service start")
+    }
+
+    private suspend fun initData() = coroutineScope {
+        settings = databaseRepository.getSettings()
+        if (!prefs.getBoolean("settings_backup_done", false)) {
+            prefs.edit()
+                .putString("settings_backup", Gson().toJson(settings))
+                .putBoolean("settings_backup_done", true)
+                .apply()
+        }
+        if (!prefs.getBoolean("codes_backup_done", false)) {
+            prefs.edit()
+                .putString("codes_backup", Gson().toJson(databaseRepository.getCodes()))
+                .putBoolean("codes_backup_done", true)
+                .apply()
+        }
+        settings.decoderEnable = false
+        codeDetailsList = emptyList()
     }
 
     override fun onDestroy() {
@@ -184,6 +181,7 @@ class BarcodeService : Service() {
         if (decoderManager.supportCode())
             unregisterReceiver(cameraStateReceiver)
         unregisterReceiver(decoderSettingsReceiver)
+        unregisterDecodeReceiver()
         EventBus.getDefault().unregister(this)
         Log.d(TAG, "barcode service stop")
     }
@@ -291,7 +289,7 @@ class BarcodeService : Service() {
         if (decoderEventFlow?.isActive == true)
             return
 
-        decoderEventFlow = decoderRepository.getEvent().onEach { event ->
+        decoderEventFlow = decoderManager.getEvent().onEach { event ->
             when (event) {
                 DecoderEvent.Opened -> {
                     decoderManager.setLight(settings.decoderLight)
@@ -300,8 +298,6 @@ class BarcodeService : Service() {
                     if (decoderManager.supportCode())
                         observeCodesFlow()
                     observeBarcodeFlow()
-                    registerDecodeReceiver(settings)
-                    updateNotification(serviceStart = true)
                 }
 
                 DecoderEvent.Closed -> {
@@ -309,18 +305,15 @@ class BarcodeService : Service() {
                     if (decoderManager.supportCode())
                         cancelCodesFlow()
                     cancelBarcodeFlows()
-                    unregisterDecodeReceiver()
-                    updateNotification(serviceStart = false)
                 }
-
-                DecoderEvent.Unknown -> {}
 
                 DecoderEvent.Error -> {
                     settings.decoderEnable = false
                     databaseRepository.updateSettings(settings.copy())
                 }
             }
-        }.launchIn(CoroutineScope(Dispatchers.IO))
+            updateNotification(event == DecoderEvent.Opened)
+        }.launchIn(CoroutineScope(Dispatchers.Main))
     }
 
     private fun cancelDecoderEventFlow() {
@@ -328,7 +321,7 @@ class BarcodeService : Service() {
     }
 
     private fun updateNotification(serviceStart: Boolean) {
-        val notification = Notification.Builder.recoverBuilder(this, notification)
+        notification = Notification.Builder.recoverBuilder(this, notification)
             .setContentTitle(getString(if (serviceStart) R.string.service_start else R.string.service_stop))
             .build()
         notificationManager.notify(NOTIFICATION_ID, notification)
@@ -338,7 +331,7 @@ class BarcodeService : Service() {
         if (settings.continuousDecode &&
             continuousDecodeState == ContinuousDecodeState.Start
         ) {
-            delay(settings.continuousDecodeInterval.toLong())
+            delay(settings.continuousDecodeInterval.toLong() + 100)
             decoderManager.startDecode()
         }
     }
@@ -347,7 +340,7 @@ class BarcodeService : Service() {
         if (barcodeFlow?.isActive == true)
             return
 
-        barcodeFlow = decoderRepository.getBarcode().onEach {
+        barcodeFlow = decoderManager.getBarcode().onEach {
             parseBarcode(it)
             continuousDecode()
         }.launchIn(CoroutineScope(Dispatchers.IO))
@@ -357,7 +350,7 @@ class BarcodeService : Service() {
         barcodeFlow?.cancel()
     }
 
-    private suspend fun parseBarcode(barcodeInfo: BarcodeInfo) {
+    private suspend fun parseBarcode(barcodeInfo: BarcodeInfo) = coroutineScope {
         barcodeInfo.transformData(settings)?.run {
             if (settings.decoderSound)
                 playSound()
@@ -403,6 +396,7 @@ class BarcodeService : Service() {
                 Intent.ACTION_SCREEN_OFF -> {
                     screenState = false
                     cancelOpenDecoderDelayJob()
+                    cancelDecode()
                     enterLowPowerConsumption()
                 }
 
@@ -449,7 +443,7 @@ class BarcodeService : Service() {
                     cameraState = intent.getBooleanExtra("state", false)
                     if (cameraState) {
                         cancelOpenDecoderDelayJob()
-                        decoderManager.cancelDecode()
+                        cancelDecode()
                         decoderManager.close()
                     } else {
                         openDecoderDelayJob()
@@ -459,11 +453,10 @@ class BarcodeService : Service() {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     private fun openDecoderDelayJob() {
         if (decoderDelayOpenJob?.isActive == true) return
 
-        decoderDelayOpenJob = GlobalScope.launch {
+        decoderDelayOpenJob = CoroutineScope(Dispatchers.IO).launch {
             delay(1000)
             if (!cameraState && screenState)
                 decoderManager.open()
@@ -481,7 +474,7 @@ class BarcodeService : Service() {
     private fun enterLowPowerConsumption() {
         if (lowPowerConsumptionWorkUUID == null) {
             val request = OneTimeWorkRequest.Builder(LowPowerConsumptionWork::class.java)
-                .setInitialDelay(1, TimeUnit.MINUTES).build()
+                .setInitialDelay(30, TimeUnit.SECONDS).build()
             lowPowerConsumptionWorkUUID = request.id
             WorkManager.getInstance(this).enqueue(request)
         }
@@ -558,7 +551,7 @@ class BarcodeService : Service() {
     }
 
     private fun restoreSettings() {
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             val gson = Gson()
             gson.fromJson<List<CodeDetails>>(
                 prefs.getString("codes_backup", ""),

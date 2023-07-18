@@ -2,7 +2,7 @@ package org.k.barcode.decoder
 
 import com.hsm.barcode.DecodeResult
 import com.hsm.barcode.Decoder
-import com.hsm.barcode.DecoderConfigValues.LightsMode.ILLUM_AIM_OFF
+import com.hsm.barcode.DecoderConfigValues.LightsMode.AIMER_ONLY
 import com.hsm.barcode.DecoderConfigValues.LightsMode.ILLUM_AIM_ON
 import com.hsm.barcode.DecoderConfigValues.SymbologyFlags.*
 import com.hsm.barcode.DecoderConfigValues.SymbologyID.*
@@ -205,7 +205,7 @@ class HsmDecoder private constructor() : BaseDecoder(), DecoderListener {
     }
 
     override fun light(enable: Boolean) {
-        decoder.lightsMode = if (enable) ILLUM_AIM_ON else ILLUM_AIM_OFF
+        decoder.lightsMode = if (enable) ILLUM_AIM_ON else AIMER_ONLY
     }
 
     override fun supportLight(): Boolean = true

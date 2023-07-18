@@ -2,6 +2,8 @@
 #include <android/log.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/system_properties.h>
+#include <cstdlib>
 #include "HwDecoder.h"
 
 #define LOG_TAG "HW_DECODER"
@@ -15,6 +17,9 @@
 
 #define MAX_DECODE_BUFFER (4095)
 #define DEFAULT_DECODE_TIMEOUT (5000)
+
+#define DEFAULT_BARCODE_SERIAL ("/dev/ttyS0")
+#define DEFAULT_BARCODE_SERIAL_BAUD ("9600")
 
 extern JNIEnv *getJniEnv();
 
@@ -128,12 +133,22 @@ HwDecoder::~HwDecoder() {
 
 bool HwDecoder::open() {
     bool result;
+    char port[128];
+    char baud[32];
 
     if (isOpened)
         return true;
 
-    //result = serialPort->open("/dev/ttyWCH0", 9600);
-    result = serialPort->open("/dev/ttyS0", 9600);
+    __system_property_get("persist.sys.barcode.serial", port);
+    if (strcmp("", port) == 0)
+        strncpy(port, DEFAULT_BARCODE_SERIAL, sizeof(port));
+
+    __system_property_get("persist.sys.barcode.serial.baud_rate", baud);
+    if (strcmp("", baud) == 0)
+        strncpy(baud, DEFAULT_BARCODE_SERIAL_BAUD, sizeof(baud));
+
+    result = serialPort->open(port, (int) strtol(baud, nullptr, 10));
+    //result = serialPort->open("/dev/ttyS0", 9600);
     if (!result)
         return false;
 
