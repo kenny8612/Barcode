@@ -213,7 +213,7 @@ class BarcodeService : Service() {
         notification = Notification.Builder(this, BARCODE_CHANNEL_ID)
             .setChannelId(BARCODE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_qr)
-            .setContentTitle(getString(R.string.service_stop))
+            .setContentTitle(getString(R.string.service_start))
             .setContentIntent(pendingIntent)
             .setShowWhen(true)
             .setWhen(System.currentTimeMillis())
@@ -422,7 +422,7 @@ class BarcodeService : Service() {
             if (ACTION_SCANNER_SETTINGS == intent?.action) {
                 if (intent.hasExtra("out_mode")) {
                     val mode = intent.getIntExtra("out_mode", 0)
-                    if (mode != settings.decoderMode.ordinal) {
+                    if (mode != settings.decoderMode.ordinal && mode < enumValues<DecodeMode>().size) {
                         settings.decoderMode = DecodeMode.values()[mode]
                         runBlocking {
                             databaseRepository.updateSettings(settings)
@@ -457,7 +457,7 @@ class BarcodeService : Service() {
         if (decoderDelayOpenJob?.isActive == true) return
 
         decoderDelayOpenJob = CoroutineScope(Dispatchers.IO).launch {
-            delay(1000)
+            delay(1500)
             if (!cameraState && screenState)
                 decoderManager.open()
         }
@@ -584,7 +584,7 @@ class BarcodeService : Service() {
         const val DOUBLE_DECODE_MIN_INTERVAL = 200
 
         const val ACTION_SCANNER_KEYCODE = "action.scanner.keycode"
-        const val ACTION_SCANNER_SETTINGS = "action.scanner.settings"
+        const val ACTION_SCANNER_SETTINGS = "com.action.SCANNER_SETTINGS"
         const val ACTION_CAMERA_STATUS = "com.action.camera.status"
     }
 
