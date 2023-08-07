@@ -4,8 +4,8 @@ import android.content.Context
 import org.k.barcode.R
 import org.k.barcode.decoder.DecodeMode
 import org.k.barcode.decoder.LightLevel
-import org.k.barcode.model.CodeDetails
-import org.k.barcode.model.Settings
+import org.k.barcode.room.CodeDetails
+import org.k.barcode.room.Settings
 import org.k.barcode.ui.ShareViewModel
 
 object SettingsUtils {

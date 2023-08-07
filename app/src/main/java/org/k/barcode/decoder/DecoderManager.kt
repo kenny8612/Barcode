@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 import java.io.BufferedReader
 import java.io.FileReader
 
@@ -126,7 +126,6 @@ class DecoderManager private constructor() {
                                 Log.d(TAG, "decode canceled")
                             } else {
                                 Log.w(TAG, "decode timeout")
-                                Thread.sleep(100)
                             }
                         } else {
                             Log.d(TAG, "decode done")

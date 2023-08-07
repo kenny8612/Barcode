@@ -1,4 +1,4 @@
-package org.k.barcode.model
+package org.k.barcode.room
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -22,6 +22,7 @@ data class Settings(
     @ColumnInfo(name = "decoderFilterCharacters") var decoderFilterCharacters: String = "",
     @ColumnInfo(name = "releaseDecode") var releaseDecode: Boolean = false,
     @ColumnInfo(name = "decoderLight") var decoderLight: Boolean = true,
+    @ColumnInfo(name = "disableScanKey") var disableScanKey: Boolean = false,
     @ColumnInfo(name = "decoderLightLevel") var lightLevel: LightLevel = LightLevel.Medium,
     @ColumnInfo(name = "broadcastStartDecode") var broadcastStartDecode: String = "",
     @ColumnInfo(name = "broadcastStopDecode") var broadcastStopDecode: String = "",

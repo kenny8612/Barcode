@@ -2,7 +2,7 @@ package org.k.barcode.decoder
 
 import kotlinx.coroutines.flow.Flow
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 
 interface Decoder {
     fun init(): Boolean

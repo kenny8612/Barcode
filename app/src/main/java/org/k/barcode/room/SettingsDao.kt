@@ -1,12 +1,12 @@
-package org.k.barcode.data
+package org.k.barcode.room
 
 import androidx.room.Dao
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-import org.k.barcode.model.CodeDetails
-import org.k.barcode.model.Settings
+import org.k.barcode.room.CodeDetails
+import org.k.barcode.room.Settings
 
 @Dao
 interface SettingsDao {

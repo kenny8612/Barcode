@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "0ea6364ee0edf46f454ebde182fd5320",
+    "identityHash": "82fc8f6041960af2e6b3d3132a86bafa",
     "entities": [
       {
-        "tableName": "DecoderSettings",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoder_enable` INTEGER NOT NULL, `decoder_vibrate` INTEGER NOT NULL, `decoder_sound` INTEGER NOT NULL, PRIMARY KEY(`uid`))",
+        "tableName": "settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, `decoderFilterCharacters` TEXT NOT NULL, `releaseDecode` INTEGER NOT NULL, `decoderLight` INTEGER NOT NULL, `disableScanKey` INTEGER NOT NULL, `decoderLightLevel` TEXT NOT NULL, `broadcastStartDecode` TEXT NOT NULL, `broadcastStopDecode` TEXT NOT NULL, `broadcastDecodeData` TEXT NOT NULL, `broadcastDecodeDataByte` TEXT NOT NULL, `broadcastDecodeDataString` TEXT NOT NULL, PRIMARY KEY(`uid`))",
         "fields": [
           {
             "fieldPath": "uid",
@@ -16,20 +16,122 @@
           },
           {
             "fieldPath": "decoderEnable",
-            "columnName": "decoder_enable",
+            "columnName": "decoderEnable",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "decoderVibrateEnable",
-            "columnName": "decoder_vibrate",
+            "fieldPath": "decoderVibrate",
+            "columnName": "decoderVibrate",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "decoderSoundEnable",
-            "columnName": "decoder_sound",
+            "fieldPath": "decoderSound",
+            "columnName": "decoderSound",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderMode",
+            "columnName": "decoderMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderCharset",
+            "columnName": "decoderCharset",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderPrefix",
+            "columnName": "decoderPrefix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decodeSuffix",
+            "columnName": "decodeSuffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "continuousDecode",
+            "columnName": "continuousDecode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "continuousDecodeInterval",
+            "columnName": "continuousDecodeInterval",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachKeycode",
+            "columnName": "attachKeycode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderFilterCharacters",
+            "columnName": "decoderFilterCharacters",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "releaseDecode",
+            "columnName": "releaseDecode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decoderLight",
+            "columnName": "decoderLight",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "disableScanKey",
+            "columnName": "disableScanKey",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lightLevel",
+            "columnName": "decoderLightLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastStartDecode",
+            "columnName": "broadcastStartDecode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastStopDecode",
+            "columnName": "broadcastStopDecode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastDecodeData",
+            "columnName": "broadcastDecodeData",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastDecodeDataByte",
+            "columnName": "broadcastDecodeDataByte",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "broadcastDecodeDataString",
+            "columnName": "broadcastDecodeDataString",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -41,12 +143,122 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "codeDetails",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `fullName` TEXT NOT NULL, `type` INTEGER NOT NULL, `enable` INTEGER NOT NULL, `transmitCheckDigit` INTEGER NOT NULL, `checkDigit` INTEGER NOT NULL, `supplemental2` INTEGER NOT NULL, `supplemental5` INTEGER NOT NULL, `upcPreamble` INTEGER NOT NULL, `startStopCharacters` INTEGER NOT NULL, `fullAscii` INTEGER NOT NULL, `minLength` INTEGER NOT NULL, `maxLength` INTEGER NOT NULL, `algorithm` INTEGER NOT NULL, `supportDetails` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullName",
+            "columnName": "fullName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enable",
+            "columnName": "enable",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transmitCheckDigit",
+            "columnName": "transmitCheckDigit",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "checkDigit",
+            "columnName": "checkDigit",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplemental2",
+            "columnName": "supplemental2",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplemental5",
+            "columnName": "supplemental5",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "upcPreamble",
+            "columnName": "upcPreamble",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startStopCharacters",
+            "columnName": "startStopCharacters",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullAscii",
+            "columnName": "fullAscii",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minLength",
+            "columnName": "minLength",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxLength",
+            "columnName": "maxLength",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "algorithm",
+            "columnName": "algorithm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supportDetails",
+            "columnName": "supportDetails",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "uid"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0ea6364ee0edf46f454ebde182fd5320')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '82fc8f6041960af2e6b3d3132a86bafa')"
     ]
   }
 }

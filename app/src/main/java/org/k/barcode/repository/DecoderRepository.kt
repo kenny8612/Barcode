@@ -1,4 +1,4 @@
-package org.k.barcode.data
+package org.k.barcode.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow

@@ -19,7 +19,7 @@ import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.decoder.Code.D1.*
 import org.k.barcode.decoder.Code.D2.*
 import org.k.barcode.decoder.Code.Post.*
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 
 class HsmDecoder private constructor() : BaseDecoder(), DecoderListener {
     private val decoder: Decoder = Decoder()
@@ -205,7 +205,11 @@ class HsmDecoder private constructor() : BaseDecoder(), DecoderListener {
     }
 
     override fun light(enable: Boolean) {
-        decoder.lightsMode = if (enable) ILLUM_AIM_ON else AIMER_ONLY
+        try {
+            decoder.lightsMode = if (enable) ILLUM_AIM_ON else AIMER_ONLY
+        } catch (e: DecoderException) {
+            e.printStackTrace()
+        }
     }
 
     override fun supportLight(): Boolean = true

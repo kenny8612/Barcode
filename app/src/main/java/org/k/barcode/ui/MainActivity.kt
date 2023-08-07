@@ -136,6 +136,7 @@ fun MainUI(shareViewModel: ShareViewModel) {
             SetupNavGraph(
                 navHostController = navHostController,
                 paddingValues = paddingValues,
+                snackBarHostState = snackBarHostState,
                 shareViewModel = shareViewModel
             )
         },

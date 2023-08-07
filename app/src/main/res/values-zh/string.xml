@@ -29,8 +29,8 @@
     <string name="supplemental5">5位附加码</string>
     <string name="restore_settings">恢复默认设置</string>
     <string name="make_sure_restore_settings">您确认要恢复默认设置?</string>
-    <string name="service_stop">服务已停止</string>
-    <string name="service_start">服务正在运行</string>
+    <string name="service_stop">扫描服务已停止</string>
+    <string name="service_start">扫描服务正在运行</string>
     <string name="scan_service">扫描服务</string>
     <string name="scan">扫描</string>
     <string name="transmit_no_preamble">仅数据</string>
@@ -53,4 +53,5 @@
     <string name="algorithm_close">关闭</string>
     <string name="check_mode">Check mode</string>
     <string name="decoder_light_level">灯光等级</string>
+    <string name="disable_scan_key">禁用扫描键</string>
 </resources>

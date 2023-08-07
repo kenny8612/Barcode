@@ -31,7 +31,7 @@ import org.k.barcode.Constant.CODE_1D
 import org.k.barcode.Constant.CODE_2D
 import org.k.barcode.Constant.CODE_OTHERS
 import org.k.barcode.R
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.utils.SettingsUtils.update
 

@@ -1,7 +1,6 @@
 package org.k.barcode.ui
 
 import android.app.Application
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -14,13 +13,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import org.k.barcode.BarcodeObserver
 import org.k.barcode.Constant
-import org.k.barcode.data.DatabaseRepository
-import org.k.barcode.data.DecoderRepository
+import org.k.barcode.repository.DatabaseRepository
+import org.k.barcode.repository.DecoderRepository
 import org.k.barcode.decoder.DecoderEvent
-import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.CodeDetails
-import org.k.barcode.model.Settings
+import org.k.barcode.model.KeyInfo
+import org.k.barcode.repository.ScanKeyRepository
+import org.k.barcode.room.CodeDetails
+import org.k.barcode.room.Settings
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,11 +29,10 @@ class ShareViewModel @Inject constructor(
     application: Application,
     private val databaseRepository: DatabaseRepository,
     decoderRepository: DecoderRepository,
+    scanKeyRepository: ScanKeyRepository
 ) : AndroidViewModel(application) {
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings.asStateFlow()
-
-    val barcodeFlow = decoderRepository.getBarcode()
 
     private val _code1D = MutableLiveData<List<CodeDetails>>()
     val code1D: LiveData<List<CodeDetails>> = _code1D
@@ -46,10 +46,13 @@ class ShareViewModel @Inject constructor(
     private val _decoderEvent = MutableStateFlow(DecoderEvent.Closed)
     val decoderEvent: StateFlow<DecoderEvent> = _decoderEvent.asStateFlow()
 
-    var barcodeInfo = mutableStateOf(BarcodeInfo())
-    var barcodeList = mutableStateListOf<String>()
+    private val _scanKey = MutableStateFlow(KeyInfo())
+    val scanKey: StateFlow<KeyInfo> = _scanKey.asStateFlow()
+
     var codeTypeIndex = mutableStateOf(0)
     var codeDetails = CodeDetails()
+
+    val barcodeObserver = BarcodeObserver(decoderRepository, settings)
 
     init {
         viewModelScope.launch {
@@ -75,6 +78,11 @@ class ShareViewModel @Inject constructor(
         viewModelScope.launch {
             databaseRepository.getCodes(Constant.CODE_OTHERS).onEach {
                 _codeOthers.value = it
+            }.launchIn(viewModelScope)
+        }
+        viewModelScope.launch {
+            scanKeyRepository.getScanKey().onEach {
+                _scanKey.value = it
             }.launchIn(viewModelScope)
         }
     }

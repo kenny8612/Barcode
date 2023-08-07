@@ -7,7 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import org.k.barcode.data.AppDatabase
+import org.k.barcode.room.AppDatabase
 import org.k.barcode.decoder.DecoderManager
 import javax.inject.Singleton
 
@@ -23,4 +23,9 @@ object DataModule {
     @Provides
     @Singleton
     fun provideDecoderManager() = DecoderManager.instance
+
+
+    @Provides
+    @Singleton
+    fun provideContext(@ApplicationContext context: Context) = context
 }

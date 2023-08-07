@@ -27,8 +27,8 @@
     <string name="supplemental5">Supplemental 5</string>
     <string name="restore_settings">Restore settings</string>
     <string name="make_sure_restore_settings">Are you sure restore settings?</string>
-    <string name="service_stop">Service stop</string>
-    <string name="service_start">Service running</string>
+    <string name="service_stop">Scan Service stop</string>
+    <string name="service_start">Scan Service running</string>
     <string name="scan_service">Scan service</string>
     <string name="scan">Scan</string>
     <string name="transmit_no_preamble">Transmit no preamble</string>
@@ -51,4 +51,5 @@
     <string name="algorithm_close">Close</string>
     <string name="check_mode">Check mode</string>
     <string name="decoder_light_level">Light level</string>
+    <string name="disable_scan_key">Disable scan key</string>
 </resources>

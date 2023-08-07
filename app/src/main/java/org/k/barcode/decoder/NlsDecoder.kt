@@ -10,7 +10,7 @@ import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.decoder.Code.D1.*
 import org.k.barcode.decoder.Code.D2.*
 import org.k.barcode.decoder.Code.Post.*
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 
 class NlsDecoder private constructor() : BaseDecoder() {
     private var softEngine = SoftEngine.getInstance()

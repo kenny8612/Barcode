@@ -44,15 +44,16 @@ import org.greenrobot.eventbus.ThreadMode
 import org.k.barcode.AppContent.Companion.TAG
 import org.k.barcode.AppContent.Companion.app
 import org.k.barcode.AppContent.Companion.prefs
-import org.k.barcode.data.DatabaseRepository
+import org.k.barcode.repository.DatabaseRepository
 import org.k.barcode.decoder.DecodeMode
 import org.k.barcode.decoder.DecoderEvent
 import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.CodeDetails
-import org.k.barcode.model.Settings
+import org.k.barcode.repository.ScanKeyRepository
+import org.k.barcode.room.CodeDetails
+import org.k.barcode.room.Settings
 import org.k.barcode.ui.MainActivity
 import org.k.barcode.utils.BarcodeInfoUtils.broadcast
 import org.k.barcode.utils.BarcodeInfoUtils.clipboard
@@ -71,6 +72,9 @@ class BarcodeService : Service() {
     @Inject
     lateinit var decoderManager: DecoderManager
 
+    @Inject
+    lateinit var scanKeyRepository: ScanKeyRepository
+
     private lateinit var notificationManager: NotificationManager
     private lateinit var keyguardManager: KeyguardManager
     private lateinit var powerManager: PowerManager
@@ -85,6 +89,8 @@ class BarcodeService : Service() {
     private var barcodeFlow: Job? = null
     private var settingsFlow: Job? = null
     private var codesFlow: Job? = null
+    private var continuousDecodeJob: Job? = null
+    private var scanKeyFlow: Job? = null
 
     private lateinit var soundPool: SoundPool
     private var scannerSoundId = 0
@@ -131,14 +137,13 @@ class BarcodeService : Service() {
         runBlocking { initData() }
         observeDecoderEventFlow()
         observeSettingsFlow()
+        observeScanKeyFlow()
 
         val intentFilter = IntentFilter()
         intentFilter.addAction(Intent.ACTION_SCREEN_ON)
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF)
         intentFilter.addAction(Intent.ACTION_USER_PRESENT)
         registerReceiver(screenReceiver, intentFilter)
-
-        registerReceiver(scannerKeyReceiver, IntentFilter(ACTION_SCANNER_KEYCODE))
 
         if (decoderManager.supportCode())
             registerReceiver(cameraStateReceiver, IntentFilter(ACTION_CAMERA_STATUS))
@@ -177,7 +182,6 @@ class BarcodeService : Service() {
         cancelDecoderEventFlow()
         cancelSettingsDataFlow()
         unregisterReceiver(screenReceiver)
-        unregisterReceiver(scannerKeyReceiver)
         if (decoderManager.supportCode())
             unregisterReceiver(cameraStateReceiver)
         unregisterReceiver(decoderSettingsReceiver)
@@ -225,6 +229,23 @@ class BarcodeService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, notification)
         return START_STICKY
+    }
+
+    private fun observeScanKeyFlow() {
+        if (scanKeyFlow?.isActive == true)
+            return
+
+        scanKeyFlow = scanKeyRepository.getScanKey().onEach {
+            if (!settings.disableScanKey) {
+                if (it.action == KeyEvent.ACTION_DOWN) {
+                    startDecode()
+                } else {
+                    if (!settings.continuousDecode &&
+                        !settings.releaseDecode
+                    ) cancelDecode()
+                }
+            }
+        }.launchIn(CoroutineScope(Dispatchers.IO))
     }
 
     private fun observeSettingsFlow() {
@@ -327,22 +348,12 @@ class BarcodeService : Service() {
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
-    private suspend fun continuousDecode() {
-        if (settings.continuousDecode &&
-            continuousDecodeState == ContinuousDecodeState.Start
-        ) {
-            delay(settings.continuousDecodeInterval.toLong() + 100)
-            decoderManager.startDecode()
-        }
-    }
-
     private fun observeBarcodeFlow() {
         if (barcodeFlow?.isActive == true)
             return
 
         barcodeFlow = decoderManager.getBarcode().onEach {
             parseBarcode(it)
-            continuousDecode()
         }.launchIn(CoroutineScope(Dispatchers.IO))
     }
 
@@ -351,32 +362,31 @@ class BarcodeService : Service() {
     }
 
     private suspend fun parseBarcode(barcodeInfo: BarcodeInfo) = coroutineScope {
-        barcodeInfo.transformData(settings)?.run {
-            if (settings.decoderSound)
-                playSound()
-            if (settings.decoderVibrate)
-                vibrate()
+        launch(Dispatchers.IO) {
+            barcodeInfo.transformData(settings).apply {
+                if (sourceData != null) {
+                    if (settings.decoderSound)
+                        playSound()
+                    if (settings.decoderVibrate)
+                        vibrate()
 
-            when (settings.decoderMode) {
-                DecodeMode.InputBox -> barcodeInfo.injectInputBox(app, settings)
-                DecodeMode.Broadcast -> barcodeInfo.broadcast(app, settings)
-                DecodeMode.Simulate -> barcodeInfo.simulate(app, settings)
-                DecodeMode.Clipboard -> barcodeInfo.clipboard(app)
+                    when (settings.decoderMode) {
+                        DecodeMode.InputBox -> injectInputBox(app, settings)
+                        DecodeMode.Broadcast -> broadcast(app, settings)
+                        DecodeMode.Simulate -> simulate(app, settings)
+                        DecodeMode.Clipboard -> clipboard(app)
+                    }
+                }
             }
         }
-    }
 
-    private val scannerKeyReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (ACTION_SCANNER_KEYCODE == intent?.action) {
-                val action = intent.getIntExtra("action", KeyEvent.ACTION_DOWN)
-                if (action == KeyEvent.ACTION_DOWN) {
-                    startDecode()
-                } else {
-                    if (!settings.continuousDecode &&
-                        !settings.releaseDecode
-                    ) cancelDecode()
-                }
+        if (settings.continuousDecode &&
+            continuousDecodeState == ContinuousDecodeState.Start
+        ) {
+            val isTimeout = barcodeInfo.sourceData == null && barcodeInfo.decodeTime != 0L
+            continuousDecodeJob = launch {
+                delay(settings.continuousDecodeInterval.toLong() + if (isTimeout) 500 else 0)
+                decoderManager.startDecode()
             }
         }
     }
@@ -511,8 +521,7 @@ class BarcodeService : Service() {
                 continuousDecodeState = ContinuousDecodeState.Start
                 decoderManager.startDecode()
             } else if (!isSDK) {
-                continuousDecodeState = ContinuousDecodeState.Stop
-                decoderManager.cancelDecode()
+                cancelDecode()
             }
         } else {
             decoderManager.startDecode()
@@ -523,6 +532,7 @@ class BarcodeService : Service() {
         if (settings.decoderEnable) {
             decoderManager.cancelDecode()
             continuousDecodeState = ContinuousDecodeState.Stop
+            continuousDecodeJob?.cancel()
         }
     }
 
@@ -583,7 +593,7 @@ class BarcodeService : Service() {
         const val DEFAULT_DECODE_TIMEOUT = 5000
         const val DOUBLE_DECODE_MIN_INTERVAL = 200
 
-        const val ACTION_SCANNER_KEYCODE = "action.scanner.keycode"
+
         const val ACTION_SCANNER_SETTINGS = "com.action.SCANNER_SETTINGS"
         const val ACTION_CAMERA_STATUS = "com.action.camera.status"
     }

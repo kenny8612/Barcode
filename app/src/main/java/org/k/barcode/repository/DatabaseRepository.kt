@@ -1,7 +1,8 @@
-package org.k.barcode.data
+package org.k.barcode.repository
 
-import org.k.barcode.model.CodeDetails
-import org.k.barcode.model.Settings
+import org.k.barcode.room.AppDatabase
+import org.k.barcode.room.CodeDetails
+import org.k.barcode.room.Settings
 import javax.inject.Inject
 
 class DatabaseRepository @Inject constructor(

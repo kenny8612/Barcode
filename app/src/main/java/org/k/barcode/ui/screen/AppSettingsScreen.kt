@@ -108,6 +108,11 @@ fun AppSettingsScreen(
             settings.copy(releaseDecode = it).update(viewModel)
         }
         SwitchEnable(
+            stringResource(id = R.string.disable_scan_key), settings.disableScanKey
+        ) {
+            settings.copy(disableScanKey = it).update(viewModel)
+        }
+        SwitchEnable(
             stringResource(id = R.string.decoder_light),
             settings.decoderLight,
             DecoderManager.instance.supportLight()

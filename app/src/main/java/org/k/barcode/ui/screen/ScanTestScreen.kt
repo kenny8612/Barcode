@@ -1,5 +1,6 @@
 package org.k.barcode.ui.screen
 
+import android.view.KeyEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,19 +19,21 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,10 +44,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
@@ -54,19 +53,30 @@ import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.ui.ShareViewModel
-import org.k.barcode.utils.BarcodeInfoUtils.transformData
 import kotlin.random.Random
 
 @Composable
 fun ScanTestScreen(
     paddingValues: PaddingValues,
-    shareViewModel: ShareViewModel,
+    snackBarHostState: SnackbarHostState,
+    viewModel: ShareViewModel,
     onNavigateToCodeSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val clipboardManager = LocalClipboardManager.current
-    val decoderEvent by shareViewModel.decoderEvent.collectAsState()
-    val settings by shareViewModel.settings.collectAsState()
+    val decoderEvent by viewModel.decoderEvent.collectAsState()
+    val settings by viewModel.settings.collectAsState()
+    val scanKey by viewModel.scanKey.collectAsState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    if (decoderEvent == DecoderEvent.Closed && !settings.disableScanKey && scanKey.action == KeyEvent.ACTION_DOWN) {
+        LaunchedEffect(Unit) {
+            scope.launch {
+                snackBarHostState.showSnackbar(context.getString(R.string.service_stop))
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -100,18 +110,15 @@ fun ScanTestScreen(
                 }
                 IconButton(
                     onClick = {
-                        if (shareViewModel.barcodeList.isNotEmpty()) {
-                            shareViewModel.barcodeList.clear()
-                            shareViewModel.barcodeInfo.value = BarcodeInfo()
-                        }
+                        viewModel.barcodeObserver.clearBarcode()
                     }
                 ) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = null)
                 }
                 IconButton(
                     onClick = {
-                        if (shareViewModel.barcodeList.isNotEmpty()) {
-                            val content = shareViewModel.barcodeList.joinToString("\n")
+                        if (viewModel.barcodeObserver.barcodeList.isNotEmpty()) {
+                            val content = viewModel.barcodeObserver.barcodeList.joinToString("\n")
                             clipboardManager.setText(AnnotatedString(content))
                         }
                     }
@@ -126,39 +133,16 @@ fun ScanTestScreen(
                 .padding(4.dp)
                 .fillMaxWidth()
                 .weight(1f),
-            shareViewModel.barcodeList
+            viewModel.barcodeObserver.barcodeList
         )
-        DecodeResult(shareViewModel.barcodeInfo.value)
-        Scan(decoderEvent) {
-            EventBus.getDefault().post(MessageEvent(Message.StartDecode))
-        }
-    }
-
-    DisposableEffect(Unit) {
-        var barcodeJob: Job? = null
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) {
-                barcodeJob?.cancel()
-            } else if (event == Lifecycle.Event.ON_RESUME) {
-                if (barcodeJob?.isActive == true) return@LifecycleEventObserver
-
-                barcodeJob = lifecycleOwner.lifecycleScope.launch {
-                    shareViewModel.barcodeFlow.collect {
-                        it.transformData(settings)?.let { data ->
-                            shareViewModel.barcodeList.add(data)
-                            if (shareViewModel.barcodeList.size > 1000)
-                                shareViewModel.barcodeList.clear()
-                            shareViewModel.barcodeInfo.value = it
-                        }
-                    }
-                }
+        DecodeResult(viewModel.barcodeObserver.barcodeInfo.value)
+        if (settings.disableScanKey)
+            Scan(decoderEvent) {
+                EventBus.getDefault().post(MessageEvent(Message.StartDecode))
             }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
     }
+
+    lifecycleOwner.lifecycle.addObserver(viewModel.barcodeObserver)
 }
 
 @OptIn(ExperimentalTextApi::class)
@@ -190,7 +174,7 @@ fun BarcodeList(
                 modifier = Modifier.fillMaxWidth(),
                 state = scrollerLazyStata,
                 contentPadding = PaddingValues(4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 itemsIndexed(barcodeList) { index, item ->
                     Text(
@@ -258,7 +242,7 @@ fun Scan(decoderEvent: DecoderEvent, onClick: () -> Unit) {
         enabled = decoderEvent == DecoderEvent.Opened
     ) {
         Text(
-            text = stringResource(id = R.string.scan),
+            text = stringResource(id = if(decoderEvent == DecoderEvent.Opened) R.string.scan else R.string.service_stop),
             fontSize = 18.sp
         )
     }

@@ -1,6 +1,7 @@
 package org.k.barcode.ui
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -15,6 +16,7 @@ import org.k.barcode.ui.screen.Screen
 fun SetupNavGraph(
     navHostController: NavHostController,
     paddingValues: PaddingValues,
+    snackBarHostState:SnackbarHostState,
     shareViewModel: ShareViewModel
 ) {
     NavHost(
@@ -23,6 +25,7 @@ fun SetupNavGraph(
     ) {
         scanTestScreen(
             paddingValues,
+            snackBarHostState,
             shareViewModel
         ) {
             navHostController.navigate(Screen.CodeSettings.route)

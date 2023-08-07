@@ -34,7 +34,7 @@ import org.k.barcode.Constant.UPC_PREAMBLE_DATA_ONLY
 import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_COUNTRY_DATA
 import org.k.barcode.Constant.UPC_PREAMBLE_SYSTEM_DATA
 import org.k.barcode.R
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 import org.k.barcode.ui.ShareViewModel
 import org.k.barcode.decoder.Code.D1.*
 import org.k.barcode.decoder.Code.D2.*

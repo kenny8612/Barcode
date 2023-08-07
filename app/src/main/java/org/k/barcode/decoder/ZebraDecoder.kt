@@ -28,7 +28,7 @@ import org.k.barcode.decoder.Code.Post.AustraliaPost
 import org.k.barcode.decoder.Code.Post.JapanPostal
 import org.k.barcode.decoder.Code.Post.UKPostal
 import org.k.barcode.decoder.Code.Post.USPostnet
-import org.k.barcode.model.CodeDetails
+import org.k.barcode.room.CodeDetails
 
 class ZebraDecoder private constructor() : BaseDecoder() {
     private val zebraScanner = ZebraScanner()

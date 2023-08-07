@@ -7,23 +7,22 @@ import android.content.Intent
 import android.view.KeyEvent
 import kotlinx.coroutines.delay
 import org.k.barcode.model.BarcodeInfo
-import org.k.barcode.model.Settings
+import org.k.barcode.room.Settings
 import java.nio.charset.Charset
 
 object BarcodeInfoUtils {
-    fun BarcodeInfo.transformData(settings: Settings): String? =
-        sourceData?.let {
-            formatData = String(it, 0, it.size)
+    fun BarcodeInfo.transformData(settings: Settings): BarcodeInfo {
+        sourceData?.apply {
+            formatData = String(this, 0, size)
             if (settings.decoderCharset != "AUTO") {
                 try {
                     formatData = String(
-                        it,
+                        this,
                         0,
-                        it.size,
+                        size,
                         Charset.forName(settings.decoderCharset)
                     )
                 } catch (_: Exception) {
-
                 }
             }
             if (settings.decoderPrefix.isNotEmpty())
@@ -32,9 +31,9 @@ object BarcodeInfoUtils {
                 formatData += settings.decodeSuffix
             if (settings.decoderFilterCharacters.isNotEmpty())
                 formatData = formatData?.replace(settings.decoderFilterCharacters, "")
-            formatData
         }
-
+        return this
+    }
 
     fun BarcodeInfo.injectInputBox(context: Context, settings: Settings) {
         val intent = Intent(ACTION_INPUT_INJECT)

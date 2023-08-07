@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5b34706003c0ba6532a92adb60951f23",
+    "identityHash": "82fc8f6041960af2e6b3d3132a86bafa",
     "entities": [
       {
         "tableName": "settings",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, `decoderFilterCharacters` TEXT NOT NULL, `releaseDecode` INTEGER NOT NULL, `decoderLight` INTEGER NOT NULL, `decoderLightLevel` TEXT NOT NULL, `broadcastStartDecode` TEXT NOT NULL, `broadcastStopDecode` TEXT NOT NULL, `broadcastDecodeData` TEXT NOT NULL, `broadcastDecodeDataByte` TEXT NOT NULL, `broadcastDecodeDataString` TEXT NOT NULL, PRIMARY KEY(`uid`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER NOT NULL, `decoderEnable` INTEGER NOT NULL, `decoderVibrate` INTEGER NOT NULL, `decoderSound` INTEGER NOT NULL, `decoderMode` TEXT NOT NULL, `decoderCharset` TEXT NOT NULL, `decoderPrefix` TEXT NOT NULL, `decodeSuffix` TEXT NOT NULL, `continuousDecode` INTEGER NOT NULL, `continuousDecodeInterval` INTEGER NOT NULL, `attachKeycode` INTEGER NOT NULL, `decoderFilterCharacters` TEXT NOT NULL, `releaseDecode` INTEGER NOT NULL, `decoderLight` INTEGER NOT NULL, `disableScanKey` INTEGER NOT NULL, `decoderLightLevel` TEXT NOT NULL, `broadcastStartDecode` TEXT NOT NULL, `broadcastStopDecode` TEXT NOT NULL, `broadcastDecodeData` TEXT NOT NULL, `broadcastDecodeDataByte` TEXT NOT NULL, `broadcastDecodeDataString` TEXT NOT NULL, PRIMARY KEY(`uid`))",
         "fields": [
           {
             "fieldPath": "uid",
@@ -93,7 +93,13 @@
             "notNull": true
           },
           {
-            "fieldPath": "decoderLightLevel",
+            "fieldPath": "disableScanKey",
+            "columnName": "disableScanKey",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lightLevel",
             "columnName": "decoderLightLevel",
             "affinity": "TEXT",
             "notNull": true
@@ -252,7 +258,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5b34706003c0ba6532a92adb60951f23')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '82fc8f6041960af2e6b3d3132a86bafa')"
     ]
   }
 }
