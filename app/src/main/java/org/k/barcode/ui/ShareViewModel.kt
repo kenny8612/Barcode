@@ -1,6 +1,7 @@
 package org.k.barcode.ui
 
 import android.app.Application
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -18,6 +19,7 @@ import org.k.barcode.Constant
 import org.k.barcode.repository.DatabaseRepository
 import org.k.barcode.repository.DecoderRepository
 import org.k.barcode.decoder.DecoderEvent
+import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.model.KeyInfo
 import org.k.barcode.repository.ScanKeyRepository
 import org.k.barcode.room.CodeDetails
@@ -28,7 +30,7 @@ import javax.inject.Inject
 class ShareViewModel @Inject constructor(
     application: Application,
     private val databaseRepository: DatabaseRepository,
-    decoderRepository: DecoderRepository,
+    private val decoderRepository: DecoderRepository,
     scanKeyRepository: ScanKeyRepository
 ) : AndroidViewModel(application) {
     private val _settings = MutableStateFlow(Settings())
@@ -52,7 +54,8 @@ class ShareViewModel @Inject constructor(
     var codeTypeIndex = mutableStateOf(0)
     var codeDetails = CodeDetails()
 
-    val barcodeObserver = BarcodeObserver(decoderRepository, settings)
+    var barcode = mutableStateOf(BarcodeInfo())
+    fun getBarcode() = decoderRepository.getBarcode()
 
     init {
         viewModelScope.launch {

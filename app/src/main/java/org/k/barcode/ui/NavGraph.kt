@@ -25,11 +25,8 @@ fun SetupNavGraph(
     ) {
         scanTestScreen(
             paddingValues,
-            snackBarHostState,
             shareViewModel
-        ) {
-            navHostController.navigate(Screen.CodeSettings.route)
-        }
+        )
         appSettingsScreen(
             paddingValues,
             shareViewModel,

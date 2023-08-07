@@ -1,7 +1,7 @@
 package org.k.barcode.ui.screen
 
-import android.view.KeyEvent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,222 +9,140 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.greenrobot.eventbus.EventBus
 import org.k.barcode.R
 import org.k.barcode.decoder.DecoderEvent
-import org.k.barcode.decoder.DecoderManager
 import org.k.barcode.message.Message
 import org.k.barcode.message.MessageEvent
 import org.k.barcode.model.BarcodeInfo
 import org.k.barcode.ui.ShareViewModel
-import kotlin.random.Random
 
 @Composable
 fun ScanTestScreen(
     paddingValues: PaddingValues,
-    snackBarHostState: SnackbarHostState,
-    viewModel: ShareViewModel,
-    onNavigateToCodeSettings: () -> Unit
+    viewModel: ShareViewModel
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val clipboardManager = LocalClipboardManager.current
     val decoderEvent by viewModel.decoderEvent.collectAsState()
-    val settings by viewModel.settings.collectAsState()
-    val scanKey by viewModel.scanKey.collectAsState()
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    if (decoderEvent == DecoderEvent.Closed && !settings.disableScanKey && scanKey.action == KeyEvent.ACTION_DOWN) {
-        LaunchedEffect(Unit) {
-            scope.launch {
-                snackBarHostState.showSnackbar(context.getString(R.string.service_stop))
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = paddingValues.calculateTopPadding())
     ) {
-        Card(
-            modifier = Modifier.padding(4.dp),
-            elevation = CardDefaults.cardElevation(2.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 4.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (DecoderManager.instance.supportCode() &&
-                    decoderEvent != DecoderEvent.Error
-                ) {
-                    IconButton(
-                        onClick = {
-                            onNavigateToCodeSettings.invoke()
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_code_settings),
-                            contentDescription = null
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = {
-                        viewModel.barcodeObserver.clearBarcode()
-                    }
-                ) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = null)
-                }
-                IconButton(
-                    onClick = {
-                        if (viewModel.barcodeObserver.barcodeList.isNotEmpty()) {
-                            val content = viewModel.barcodeObserver.barcodeList.joinToString("\n")
-                            clipboardManager.setText(AnnotatedString(content))
-                        }
-                    }
-                ) {
-                    Icon(painter = painterResource(id = R.drawable.ic_content_copy), null)
-                }
-            }
-        }
-
-        BarcodeList(
+        BarcodeView(
             modifier = Modifier
                 .padding(4.dp)
                 .fillMaxWidth()
                 .weight(1f),
-            viewModel.barcodeObserver.barcodeList
+            barcodeInfo = viewModel.barcode.value
         )
-        DecodeResult(viewModel.barcodeObserver.barcodeInfo.value)
-        if (settings.disableScanKey)
-            Scan(decoderEvent) {
-                EventBus.getDefault().post(MessageEvent(Message.StartDecode))
-            }
+        Scan(decoderEvent) {
+            EventBus.getDefault().post(MessageEvent(Message.StartDecode))
+        }
     }
 
-    lifecycleOwner.lifecycle.addObserver(viewModel.barcodeObserver)
+    DisposableEffect(Unit) {
+        var barcodeJob: Job? = null
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                barcodeJob = viewModel.getBarcode().onEach { barcode ->
+                    barcode.sourceData?.also { viewModel.barcode.value = barcode }
+                }.launchIn(lifecycleOwner.lifecycleScope)
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                barcodeJob?.cancel()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
-fun BarcodeList(
-    modifier: Modifier,
-    barcodeList: SnapshotStateList<String>
-) {
-    val scrollerLazyStata = rememberLazyListState()
-    val insert by remember {
-        derivedStateOf {
-            scrollerLazyStata.layoutInfo.totalItemsCount == barcodeList.size && barcodeList.isNotEmpty()
-        }
-    }
-
-    if (insert) {
-        LaunchedEffect(Unit) {
-            scrollerLazyStata.scrollToItem(scrollerLazyStata.layoutInfo.totalItemsCount)
-        }
-    }
-
+fun BarcodeView(modifier: Modifier, barcodeInfo: BarcodeInfo) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        if (barcodeList.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                state = scrollerLazyStata,
-                contentPadding = PaddingValues(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(alignment = Alignment.Center),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                itemsIndexed(barcodeList) { index, item ->
+                barcodeInfo.formatData?.also {
+                    SelectionContainer {
+                        Text(
+                            text = it,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(alignment = Alignment.BottomStart)
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                barcodeInfo.sourceData?.also {
                     Text(
-                        text = item,
-                        style = TextStyle(fontSize = 16.sp, lineBreak = LineBreak.Paragraph),
-                        color = if (index == barcodeList.size - 1) Color(
-                            red = Random.nextInt(256),
-                            green = Random.nextInt(256),
-                            blue = Random.nextInt(256)
-                        ) else Color.Black
+                        modifier = Modifier,
+                        text = stringResource(
+                            id = R.string.barcode_aim_value,
+                            barcodeInfo.aim ?: "N/A"
+                        ),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        modifier = Modifier,
+                        text = stringResource(
+                            id = R.string.decode_time_value,
+                            barcodeInfo.decodeTime
+                        ),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        modifier = Modifier,
+                        text = stringResource(
+                            R.string.barcode_length_value,
+                            barcodeInfo.sourceData.size
+                        ),
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun DecodeResult(barcodeInfo: BarcodeInfo) {
-    Card(
-        modifier = Modifier
-            .padding(4.dp)
-            .fillMaxWidth()
-            .height(35.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                modifier = Modifier,
-                text = stringResource(id = R.string.barcode_aim_value, barcodeInfo.aim ?: "N/A"),
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                modifier = Modifier,
-                text = stringResource(id = R.string.decode_time_value, barcodeInfo.decodeTime),
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                modifier = Modifier,
-                text = stringResource(
-                    R.string.barcode_length_value,
-                    barcodeInfo.sourceData?.size ?: 0
-                ),
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
@@ -242,7 +160,7 @@ fun Scan(decoderEvent: DecoderEvent, onClick: () -> Unit) {
         enabled = decoderEvent == DecoderEvent.Opened
     ) {
         Text(
-            text = stringResource(id = if(decoderEvent == DecoderEvent.Opened) R.string.scan else R.string.service_stop),
+            text = stringResource(id = R.string.scan),
             fontSize = 18.sp
         )
     }

@@ -18,7 +18,7 @@
     <string name="decode_time_value">Time: %1$d ms</string>
     <string name="continuous_decode">Continuous decode</string>
     <string name="continuous_decode_interval">Continuous decode interval(ms)</string>
-    <string name="codes_edit">Code edit</string>
+    <string name="codes_edit">Code settings</string>
     <string name="code1D">1D</string>
     <string name="code2D">2D</string>
     <string name="others">Others</string>
@@ -40,7 +40,7 @@
     <string name="start_stop_characters">Start/Stop characters</string>
     <string name="full_ascii">Full ascii</string>
     <string name="checkDigit">Check digit</string>
-    <string name="broadcast_edit">Broadcast edit</string>
+    <string name="broadcast_edit">Broadcast settings</string>
     <string name="action_start_decode">Action start decode</string>
     <string name="action_stop_decode">Action stop decode</string>
     <string name="action_decode_data">Action decoded data</string>
@@ -52,4 +52,5 @@
     <string name="check_mode">Check mode</string>
     <string name="decoder_light_level">Light level</string>
     <string name="disable_scan_key">Disable scan key</string>
+    <string name="copy_to_clipboard">Copied to clipboard</string>
 </resources>

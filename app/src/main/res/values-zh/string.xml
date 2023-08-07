@@ -20,7 +20,7 @@
     <string name="decode_time_value">时间: %1$d ms</string>
     <string name="continuous_decode">连续扫描</string>
     <string name="continuous_decode_interval">连续扫描间隔(ms)</string>
-    <string name="codes_edit">码制编辑</string>
+    <string name="codes_edit">码制设置</string>
     <string name="code1D">一维</string>
     <string name="code2D">二维</string>
     <string name="others">其他</string>
@@ -42,7 +42,7 @@
     <string name="start_stop_characters">开始/停止字符</string>
     <string name="full_ascii">Full ascii</string>
     <string name="checkDigit">校验位</string>
-    <string name="broadcast_edit">广播编辑</string>
+    <string name="broadcast_edit">广播设置</string>
     <string name="action_start_decode">启动扫描广播</string>
     <string name="action_stop_decode">停止扫描广播</string>
     <string name="action_decode_data">扫描数据广播</string>
@@ -54,4 +54,5 @@
     <string name="check_mode">Check mode</string>
     <string name="decoder_light_level">灯光等级</string>
     <string name="disable_scan_key">禁用扫描键</string>
+    <string name="copy_to_clipboard">已复制到剪切板</string>
 </resources>
